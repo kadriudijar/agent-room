@@ -85,6 +85,14 @@ The status file's shape is `RoomFile` in `mod/types/index.d.ts`, which both part
   - the boss (main agent): 4 hair styles, picked per agent, with the magenta shirt recolored to the session's colour (`recolor`, cached per frame image)
   - interns (subagents): 4 looks
 - **Breaks:** a worker on break leaves an empty desk with its chair turned away.
+- **Props:**
+  - outer wall: the elevator at the left end and a fire extinguisher at the right
+  - session rooms: a closed door and a framed picture on the wall
+  - lounge and kitchen: an open doorway; the kitchen also has a clock
+  - lounge: sofa, armchair, rug, coffee table, TV, bookshelf, beanbag, and a ping-pong table when the room is at least 170 px wide
+  - kitchen: coffee counter with the microwave on it, water cooler, fridge, dining table and fruit bowl
+  - the boss wears the gold crown badge at the desk and while walking
+- **Lobby:** a grid spot no room takes is an open lobby with reception, a vending machine, a filing cabinet, a printer and a plant. Clicking it does nothing.
 
 **Key files:** `viewer/art.ts`, `viewer/sheet.ts`, `viewer/png.ts`, `viewer/canvas.ts` (`drawImage`, `drawNine`), `art/`, `viewer/test/art.test.ts`, `viewer/test/sheet.test.ts`, `viewer/test/png.test.ts`
 

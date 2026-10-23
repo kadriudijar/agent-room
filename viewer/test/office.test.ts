@@ -239,3 +239,31 @@ test(
         PALETTE.intern),
       false)
   })
+
+test(
+  'empty spots in the grid become a lobby',
+  () => {
+    const office = layoutOffice(
+      [room(
+        'a',
+        [agent(null)]), room(
+        'b',
+        [agent(null)]), room(
+        'c',
+        [agent(null)])],
+      640,
+      400)
+    const kinds = office.rooms.map(r => r.kind)
+    const cols = new Set(office.rooms.map(r => r.x)).size
+    const rows = new Set(office.rooms.map(r => r.y)).size
+
+    assert.equal(
+      office.rooms.length,
+      cols * rows)
+    assert.equal(
+      kinds.filter(k => k === 'lobby').length,
+      cols * rows - 5)
+    assert.equal(
+      office.desks.length,
+      3)
+  })

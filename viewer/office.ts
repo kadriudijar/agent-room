@@ -8,8 +8,9 @@ import type { Line } from './text.ts'
 
 export type Box = { x: number; y: number; w: number; h: number }
 export type Desk = Box & { sessionId: string; agentId: string | null }
-// `session` holds a session's desks; `empty` the no-sessions sign; the rest are shared rooms.
-export type RoomKind = 'session' | 'empty' | 'lounge' | 'kitchen'
+// `session` holds a session's desks; `empty` the no-sessions sign; `lounge` and `kitchen` are the
+// break rooms; `lobby` is an open spot of the grid no room took.
+export type RoomKind = 'session' | 'empty' | 'lounge' | 'kitchen' | 'lobby'
 export type RoomBox = Box & { sessionId: string; kind: RoomKind }
 export type Office = { width: number; height: number; rooms: RoomBox[]; desks: Desk[]; building: Box; sign: Box; board: Box }
 // What the sign and the board show: the status line, and the log or a desk's details.
@@ -139,6 +140,26 @@ export const layoutOffice = (rooms: RoomFile[], width: number, height: number): 
       h: DESK_H,
     }))
   })
+  for (let i = cells.length; i < roomCols * Math.ceil(cells.length / roomCols); i++) {
+    const col = i % roomCols
+    const row = Math.floor(i / roomCols)
+    boxes.push({
+      sessionId: '',
+      kind: 'lobby',
+      x: originX + size.colW
+        .slice(
+          0,
+          col)
+        .reduce((a, b) => a + b + CORRIDOR, 0),
+      y: originY + size.rowH
+        .slice(
+          0,
+          row)
+        .reduce((a, b) => a + b + CORRIDOR, 0),
+      w: size.colW[col],
+      h: size.rowH[row],
+    })
+  }
   return { width: officeW, height: officeH, rooms: boxes, desks, building, sign, board }
 }
 
@@ -412,7 +433,21 @@ const drawBuilding = (c: Canvas, box: Box) => {
     SPRITES.wallTop,
     { x: box.x, y: box.y, w: box.w, h: OUTER_WALL },
     art?.wallTop)
-  for (let x = box.x + 16; x + 24 < box.x + box.w - 16; x += 40)
+  // The elevator at the left end of the outer wall, an extinguisher at the right; windows between.
+  const left = art ? box.x + 12 + art.props.elevator.width : box.x
+  if (art) {
+    drawImage(
+      c,
+      art.props.elevator,
+      box.x + 8,
+      box.y + OUTER_WALL - art.props.elevator.height)
+    drawImage(
+      c,
+      art.props.extinguisher,
+      box.x + box.w - 14,
+      box.y + OUTER_WALL - art.props.extinguisher.height - 2)
+  }
+  for (let x = left + 16; x + 24 < box.x + box.w - 20; x += 40)
     if (art) drawImage(
       c,
       art.window,
@@ -486,13 +521,18 @@ const drawArtCommons = (c: Canvas, box: RoomBox, inner: Box, cx: number) => {
     put(
       c,
       'beanbag',
-      cx + 30,
-      inner.y + 24)
+      cx + 22,
+      inner.y + 30)
     put(
       c,
       'armchair',
       cx - 44,
       inner.y + 14)
+    if (inner.w >= 170) put(
+      c,
+      'pingpong',
+      inner.x + inner.w - 36,
+      inner.y + 26)
     return
   }
   put(
@@ -500,6 +540,11 @@ const drawArtCommons = (c: Canvas, box: RoomBox, inner: Box, cx: number) => {
     'counter',
     inner.x,
     inner.y)
+  put(
+    c,
+    'microwave',
+    inner.x + 18,
+    inner.y - 2)
   put(
     c,
     'cooler',
@@ -570,9 +615,66 @@ const drawCommons = (c: Canvas, box: RoomBox) => {
     inner.y + 28)
 }
 
-const ROOM_TITLES: Record<RoomKind, string> = { session: '', empty: '', lounge: 'LOUNGE', kitchen: 'KITCHEN' }
+const ROOM_TITLES: Record<RoomKind, string> = { session: '', empty: '', lounge: 'LOUNGE', kitchen: 'KITCHEN', lobby: '' }
+
+// An open spot of the corridor: reception, printer, vending machine and filing cabinet.
+const drawLobby = (c: Canvas, box: RoomBox) => {
+  if (!art) return
+  const p = art.props
+  const floorY = box.y + box.h - 8
+  drawImage(
+    c,
+    p.reception,
+    box.x + Math.floor((box.w - p.reception.width) / 2),
+    box.y + Math.floor(box.h / 2) - p.reception.height)
+  drawImage(
+    c,
+    p.vending,
+    box.x + 6,
+    floorY - p.vending.height)
+  drawImage(
+    c,
+    p.printer,
+    box.x + box.w - p.printer.width - 6,
+    floorY - p.printer.height)
+  drawImage(
+    c,
+    p.filing,
+    box.x + box.w - p.printer.width - p.filing.width - 10,
+    floorY - p.filing.height)
+  drawImage(
+    c,
+    art.plant,
+    box.x + 26,
+    floorY - art.plant.height)
+}
+
+// A wall decoration: a closed door and a picture on a session room's wall; an open doorway on a break room's.
+const drawWallDecor = (c: Canvas, box: RoomBox) => {
+  if (!art) return
+  const isBreakRoom = box.kind === 'lounge' || box.kind === 'kitchen'
+  const door = isBreakRoom ? art.doorway : art.door
+  drawImage(
+    c,
+    door,
+    box.x + box.w - door.width - 8,
+    box.y + WALL_H - door.height + 1)
+  if (!isBreakRoom && box.w >= 120) drawImage(
+    c,
+    art.props.picture,
+    box.x + box.w - door.width - art.props.picture.width - 16,
+    box.y + 3)
+  if (box.kind === 'kitchen') drawImage(
+    c,
+    art.props.clock,
+    box.x + box.w - door.width - 24,
+    box.y + 3)
+}
 
 const drawRoom = (c: Canvas, box: RoomBox, room: RoomFile | undefined) => {
+  if (box.kind === 'lobby') return drawLobby(
+    c,
+    box)
   const isTiled = box.kind === 'kitchen' || (box.kind === 'session' && hash(box.sessionId) % 2)
   tile(
     c,
@@ -588,6 +690,9 @@ const drawRoom = (c: Canvas, box: RoomBox, room: RoomFile | undefined) => {
     c,
     box,
     PALETTE.outline)
+  drawWallDecor(
+    c,
+    box)
   // A doorway in the bottom wall onto the corridor.
   fillRect(
     c,
@@ -763,6 +868,11 @@ const drawFigure = (c: Canvas, agent: DeskAgent, sessionId: string, figure: Figu
       figure.x + 5 - Math.floor(image.width / 2),
       figure.y + 14 - image.height,
       figure.isFacingLeft)
+    if (agent.id === null) drawImage(
+      c,
+      art.crown,
+      figure.x + 5 - Math.floor(art.crown.width / 2),
+      figure.y + 14 - image.height - 4)
     return
   }
   const { sprites, recolor } = looks(
@@ -822,6 +932,11 @@ const drawDesk = (c: Canvas, desk: Desk, agent: DeskAgent, tick: number, isSelec
         frame,
         cx - Math.floor(frame.width / 2),
         desk.y + 50 - frame.height)
+      if (agent.id === null) drawImage(
+        c,
+        art.crown,
+        cx - Math.floor(art.crown.width / 2),
+        desk.y + 50 - frame.height - 3)
     }
     nameTag(
       c,

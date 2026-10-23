@@ -24,7 +24,12 @@ export type Art = {
   icons: Record<Icon | 'coffee' | 'alert', Canvas>
   // Panels stretched as nine-slices.
   ui: { sign: Canvas; chalkboard: Canvas; clipboard: Canvas; bubble: Canvas }
+  props: Record<Prop, Canvas>
+  door: Canvas
+  doorway: Canvas
+  crown: Canvas
 }
+export type Prop = 'elevator' | 'reception' | 'printer' | 'filing' | 'vending' | 'extinguisher' | 'clock' | 'picture'
 
 // The office's sizes for each kind of sprite, in logical pixels.
 export const STATION = { w: 44, h: 38 }
@@ -92,7 +97,18 @@ const looks = (frames: Canvas[]): Look[] => Array.from(
     }
   })
 
-const SHEETS = ['boss', 'interns', 'desks', 'tiles', 'building', 'breakroom', 'icons', 'ui']
+const SHEETS = ['boss', 'interns', 'desks', 'tiles', 'building', 'breakroom', 'icons', 'ui', 'badges']
+// Building sheet order: window (dusk, night), then these, then a plant.
+const PROPS: [Prop, number, number][] = [
+  ['elevator', 22, 24],
+  ['reception', 34, 22],
+  ['printer', 16, 14],
+  ['filing', 12, 18],
+  ['vending', 16, 24],
+  ['extinguisher', 6, 12],
+  ['clock', 9, 9],
+  ['picture', 12, 10],
+]
 
 // The generated sheets in `dir`, cut into the office's sprites; undefined when any is missing or
 // unreadable, so the office keeps its drawn-in-code look.
@@ -172,6 +188,24 @@ export const loadArt = (dir: string): Art | undefined => {
         7,
         7)])) as Art['icons'],
       ui: { sign: ui[0], chalkboard: ui[1], clipboard: ui[2], bubble: ui[3] },
+      props: Object.fromEntries(PROPS.map(([name, w, h], i) => [name, shrink(
+        building[2 + i],
+        w,
+        h)])) as Record<Prop, Canvas>,
+      door: shrink(
+        tiles[14],
+        10,
+        14),
+      doorway: shrink(
+        tiles[13],
+        10,
+        14),
+      crown: shrink(
+        sheet(
+          dir,
+          'badges')[0],
+        8,
+        6),
     }
   } catch {
     return undefined
