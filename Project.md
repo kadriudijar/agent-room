@@ -63,7 +63,8 @@ The status file's shape is `RoomFile` in `mod/types/index.d.ts`, which both part
   - an agent that needs you gets a red `!` screen and a red `!` above it, blinking at 1 Hz
 - **Bubbles:** each bubble shows the action's icon and label, cut to fit.
 - **Fonts:** the status sign and the activity or details board use a 5×7 bitmap font with lowercase and two descender rows (`viewer/font.ts`, 6 px advance, 11 px lines). Bubbles, name tags and room names use the 3×5 uppercase font. A glyph a font lacks draws as `?`.
-- **Snapshot:** `node viewer/snapshot.ts <fixture> <out.png> [w h scale]` renders a fixture for checking the art.
+- **Snapshot:** `node viewer/snapshot.ts <fixture> <out.png> [w h]` renders a fixture as `claude-room` would fill a tab of that many pixels, with the art and the breaks. `docs/showcase.json` and `docs/office.png` are the README's picture (2880×1864, a full-screen Retina tab).
+- **Layout choice:** among the layouts within 10% of the largest drawable size (and fitting, when the largest fits), the one with the widest rooms wins, so a single row of tall, narrow rooms loses to a grid.
 
 **Key files:** `viewer/office.ts`, `viewer/sprites.ts`, `viewer/font.ts`, `viewer/test/font.test.ts`, `viewer/canvas.ts`, `viewer/png.ts`, `viewer/snapshot.ts`, `viewer/test/office.test.ts`, `viewer/test/fixtures/busy.json`
 

@@ -14,11 +14,12 @@ export const agentKey = (sessionId: string, agentId: string | null) => `${sessio
 // Where a sitter's sprite stands at its desk.
 const seat = (desk: Desk): Point => ({ x: desk.x + desk.w / 2 - 5, y: desk.y + 27 })
 
+// Standing room on the open floor near the bottom of a break room, in rows from the bottom up.
 const spot = (room: Box, i: number): Point => {
   const perRow = Math.max(
     1,
-    Math.floor((room.w - 60) / 14))
-  return { x: room.x + 52 + (i % perRow) * 14, y: room.y + 30 + Math.floor(i / perRow) * 18 }
+    Math.floor((room.w - 40) / 14))
+  return { x: room.x + 20 + (i % perRow) * 14, y: room.y + room.h - 22 - Math.floor(i / perRow) * 16 }
 }
 
 const inside = (p: Point, b: Box) => p.x >= b.x && p.x < b.x + b.w && p.y >= b.y && p.y < b.y + b.h

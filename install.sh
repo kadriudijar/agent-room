@@ -41,7 +41,7 @@ fi
 
 node_major="$(node -p 'process.versions.node.split(".")[0]' 2>/dev/null || echo 0)"
 if (( node_major < 24 )); then
-  echo "claude-room needs Node 24 or newer (found ${node_major})." >&2
+  echo "claude-room needs Node 24.2 or newer (found ${node_major})." >&2
   exit 1
 fi
 

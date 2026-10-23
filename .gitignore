@@ -1,3 +1,4 @@
 node_modules/
 *.png
 !art/*.png
+!docs/*.png

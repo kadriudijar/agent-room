@@ -1,0 +1,241 @@
+[
+ {
+  "version": 1,
+  "sessionId": "s1",
+  "name": "api-gateway",
+  "cwd": "/repos/api-gateway",
+  "pid": 1,
+  "procStart": "",
+  "updatedAt": 1792790000001,
+  "agents": [
+   {
+    "id": null,
+    "parentId": null,
+    "name": "main",
+    "type": "main",
+    "description": "",
+    "status": "running",
+    "needsYou": false,
+    "action": {
+     "icon": "edit",
+     "label": "routes.ts"
+    }
+   },
+   {
+    "id": "a1",
+    "parentId": null,
+    "name": "Explore",
+    "type": "Explore",
+    "description": "",
+    "status": "running",
+    "needsYou": false,
+    "action": {
+     "icon": "read",
+     "label": "auth.middleware.ts"
+    }
+   },
+   {
+    "id": "a2",
+    "parentId": null,
+    "name": "test-runner",
+    "type": "general-purpose",
+    "description": "",
+    "status": "running",
+    "needsYou": false,
+    "action": {
+     "icon": "bash",
+     "label": "$ npm test"
+    }
+   },
+   {
+    "id": "a3",
+    "parentId": null,
+    "name": "reviewer",
+    "type": "code-reviewer",
+    "description": "",
+    "status": "idle",
+    "needsYou": false,
+    "action": null,
+    "since": 0
+   }
+  ],
+  "usage": [
+   {
+    "kind": "five_hour",
+    "percent": 42,
+    "resetsAt": "2026-10-23T23:30:00Z"
+   },
+   {
+    "kind": "seven_day",
+    "percent": 61,
+    "resetsAt": "2026-10-26T14:00:00Z"
+   }
+  ],
+  "log": [
+   {
+    "at": 1792790000000,
+    "agentId": "a2",
+    "icon": "bash",
+    "label": "$ npm test"
+   },
+   {
+    "at": 1792789993000,
+    "agentId": null,
+    "icon": "edit",
+    "label": "routes.ts"
+   },
+   {
+    "at": 1792789986000,
+    "agentId": "a1",
+    "icon": "read",
+    "label": "auth.middleware.ts"
+   }
+  ]
+ },
+ {
+  "version": 1,
+  "sessionId": "s2",
+  "name": "web-app",
+  "cwd": "/repos/web-app",
+  "pid": 1,
+  "procStart": "",
+  "updatedAt": 1792790000000,
+  "agents": [
+   {
+    "id": null,
+    "parentId": null,
+    "name": "main",
+    "type": "main",
+    "description": "",
+    "status": "idle",
+    "needsYou": true,
+    "action": {
+     "icon": "ask",
+     "label": "Asking you"
+    }
+   },
+   {
+    "id": "b1",
+    "parentId": null,
+    "name": "Plan",
+    "type": "Plan",
+    "description": "",
+    "status": "running",
+    "needsYou": false,
+    "action": {
+     "icon": "web",
+     "label": "react.dev"
+    }
+   }
+  ],
+  "usage": [],
+  "log": [
+   {
+    "at": 1792790000000,
+    "agentId": null,
+    "icon": "ask",
+    "label": "Asking you"
+   },
+   {
+    "at": 1792789993000,
+    "agentId": "b1",
+    "icon": "web",
+    "label": "react.dev"
+   }
+  ]
+ },
+ {
+  "version": 1,
+  "sessionId": "s3",
+  "name": "billing",
+  "cwd": "/repos/billing",
+  "pid": 1,
+  "procStart": "",
+  "updatedAt": 1792790000000,
+  "agents": [
+   {
+    "id": null,
+    "parentId": null,
+    "name": "main",
+    "type": "main",
+    "description": "",
+    "status": "idle",
+    "needsYou": false,
+    "action": null,
+    "since": 0
+   },
+   {
+    "id": "c1",
+    "parentId": null,
+    "name": "general",
+    "type": "general-purpose",
+    "description": "",
+    "status": "idle",
+    "needsYou": false,
+    "action": null,
+    "since": 0
+   }
+  ],
+  "usage": [],
+  "log": [
+   {
+    "at": 1792790000000,
+    "agentId": null,
+    "icon": "other",
+    "label": "idle"
+   }
+  ]
+ },
+ {
+  "version": 1,
+  "sessionId": "s4",
+  "name": "mobile",
+  "cwd": "/repos/mobile",
+  "pid": 1,
+  "procStart": "",
+  "updatedAt": 1792790000000,
+  "agents": [
+   {
+    "id": null,
+    "parentId": null,
+    "name": "main",
+    "type": "main",
+    "description": "",
+    "status": "running",
+    "needsYou": false,
+    "action": {
+     "icon": "bash",
+     "label": "$ pnpm build"
+    }
+   },
+   {
+    "id": "d1",
+    "parentId": null,
+    "name": "Explore",
+    "type": "Explore",
+    "description": "",
+    "status": "running",
+    "needsYou": false,
+    "action": {
+     "icon": "read",
+     "label": "useAuth"
+    }
+   }
+  ],
+  "usage": [],
+  "log": [
+   {
+    "at": 1792790000000,
+    "agentId": null,
+    "icon": "bash",
+    "label": "$ pnpm build"
+   },
+   {
+    "at": 1792789993000,
+    "agentId": "d1",
+    "icon": "read",
+    "label": "useAuth"
+   }
+  ]
+ }
+]

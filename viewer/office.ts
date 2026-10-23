@@ -86,18 +86,22 @@ export const layoutOffice = (rooms: RoomFile[], width: number, height: number): 
     }
   }
 
-  // The room and desk columns that let the office be drawn largest in `width × height`.
-  let size = sizeFor(
-    Math.ceil(Math.sqrt(cells.length)),
-    1)
+  // The room and desk columns that let the office be drawn largest in `width × height`; among those
+  // within 10% of the largest (and fitting, when the largest fits), the widest rooms, so a row of
+  // tall, narrow rooms loses to a grid.
   const fill = (s: ReturnType<typeof sizeFor>) => Math.min(width / s.w, height / s.h)
-  for (let roomCols = 1; roomCols <= cells.length; roomCols++)
-    for (let deskCols = 1; deskCols <= most; deskCols++) {
-      const candidate = sizeFor(
-        roomCols,
-        deskCols)
-      if (fill(candidate) > fill(size)) size = candidate
-    }
+  const candidates = Array.from(
+    { length: cells.length },
+    (_, r) => Array.from(
+      { length: most },
+      (_, d) => sizeFor(
+        r + 1,
+        d + 1)))
+    .flat()
+  const best = Math.max(...candidates.map(fill))
+  const size = candidates
+    .filter(s => fill(s) >= Math.max(best * 0.9, Math.min(best, 1)))
+    .sort((a, b) => b.deskCols - a.deskCols || fill(b) - fill(a))[0]
   const { roomCols, deskCols } = size
   const officeW = Math.max(
     width,
