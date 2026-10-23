@@ -30,28 +30,40 @@ const countdown = (resetsAt: string | undefined, now: number) => {
   return ` · resets in ${d ? `${d}d${h}h` : h ? `${h}h${m}m` : `${m}m`}`
 }
 
+// The fullest header that fits `cols`: it drops the title, then the reset times, then usage, and
+// only then cuts.
 export const headerLine = (rooms: RoomFile[], now: number, cols: number) => {
   const agents = rooms.flatMap(r => r.agents)
   const newest = [...rooms].sort((a, b) => b.updatedAt - a.updatedAt)[0]
-  const limit = (kind: string, label: string) => {
+  const limit = (kind: string, label: string, withReset: boolean) => {
     const usage = newest?.usage.find(u => u.kind === kind)
-    return usage ? `${label} ${usage.percent}%${countdown(usage.resetsAt, now)}` : `${label} –`
+    return usage ? `${label} ${usage.percent}%${withReset ? countdown(usage.resetsAt, now) : ''}` : `${label} –`
   }
-  return cut(
-    [
-      'Agent Room',
-      `${rooms.length} rooms`,
-      `${agents.length} agents`,
-      `${agents.filter(a => a.status === 'running').length} working`,
-      `${agents.filter(a => a.id !== null).length} helpers`,
-      `${agents.filter(a => a.needsYou).length} needs you`,
-      limit(
-        'five_hour',
-        '5h'),
-      limit(
-        'seven_day',
-        'week'),
-    ].join(' · '),
+  const counts = [
+    `${rooms.length} rooms`,
+    `${agents.length} agents`,
+    `${agents.filter(a => a.status === 'running').length} working`,
+    `${agents.filter(a => a.id !== null).length} helpers`,
+    `${agents.filter(a => a.needsYou).length} needs you`,
+  ]
+  const usage = (withReset: boolean) => [
+    limit(
+      'five_hour',
+      '5h',
+      withReset),
+    limit(
+      'seven_day',
+      'week',
+      withReset),
+  ]
+  const variants = [
+    ['Agent Room', ...counts, ...usage(true)],
+    [...counts, ...usage(true)],
+    [...counts, ...usage(false)],
+    counts,
+  ].map(parts => parts.join(' · '))
+  return variants.find(line => [...line].length <= cols) ?? cut(
+    variants.at(-1)!,
     cols)
 }
 

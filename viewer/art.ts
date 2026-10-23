@@ -60,15 +60,16 @@ const sheet = (dir: string, name: string, merge?: Merge) => {
     box))
 }
 
-// A floor tile's middle, square, without the outline the generator drew round it.
-const floor = (tile: Canvas) => {
-  const side = Math.floor(Math.min(tile.width, tile.height) * 0.6)
+// A floor tile's middle, square, without the outline the generator drew round it, at `size` px:
+// smaller for patterned floors, so their squares sit in scale with the furniture.
+const floor = (tile: Canvas, size: number) => {
+  const side = Math.floor(Math.min(tile.width, tile.height) * 0.86)
   return shrink(
     cut(
       tile,
       { x: Math.floor((tile.width - side) / 2), y: Math.floor((tile.height - side) / 2), w: side, h: side }),
-    16,
-    16)
+    size,
+    size)
 }
 
 const looks = (frames: Canvas[]): Look[] => Array.from(
@@ -135,11 +136,21 @@ export const loadArt = (dir: string): Art | undefined => {
         14,
         16),
       floors: {
-        cream: floor(tiles[0]),
-        wood: floor(tiles[1]),
-        woodDark: floor(tiles[2]),
-        corridor: floor(tiles[4]),
-        kitchen: floor(tiles[5]),
+        cream: floor(
+          tiles[0],
+          8),
+        wood: floor(
+          tiles[1],
+          16),
+        woodDark: floor(
+          tiles[2],
+          16),
+        corridor: floor(
+          tiles[4],
+          16),
+        kitchen: floor(
+          tiles[5],
+          12),
       },
       wallTop: shrink(
         tiles[8],
@@ -147,8 +158,8 @@ export const loadArt = (dir: string): Art | undefined => {
         16),
       window: shrink(
         building[0],
-        14,
-        12),
+        22,
+        20),
       plant: shrink(
         building[11],
         10,

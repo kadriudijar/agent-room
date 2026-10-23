@@ -76,7 +76,8 @@ The status file's shape is `RoomFile` in `mod/types/index.d.ts`, which both part
 - **Shrinking:** each sprite is shrunk to its slot by averaging, and a pixel stays opaque when half its area was, so edges stay hard.
   - seated workers: 44×38, each a whole desk station
   - standing and walking figures: 14×24
-  - floor tiles: 16×16, cut from the middle of each tile
+  - floor tiles: cut from the middle 86% of each tile, then sized by pattern so they sit in scale with the furniture: cream checker 8×8, kitchen tile 12×12, wood and corridor 16×16
+  - windows: 22×20, along a 26 px outer wall
   - furniture: sized per piece
   - icons: 7×7
 - **Panels:** the sign, chalkboard, clipboard and speech bubble are stretched as nine-slices (`drawNine`).
@@ -103,7 +104,7 @@ The status file's shape is `RoomFile` in `mod/types/index.d.ts`, which both part
   - draws and upscales the office with nearest-neighbour scaling, so pixels stay crisp
   - sends it as a PNG with the kitty graphics protocol, as image id 1 replaced in place, only when the bytes changed
 - **Text rows:**
-  - row 1 is the header: rooms, agents, working, helpers, needs you, and 5-hour and weekly usage with reset countdowns, from the most recently updated room
+  - row 1 is the header: rooms, agents, working, helpers, needs you, and 5-hour and weekly usage with reset times, from the most recently updated room. When the sign is too narrow, the header drops the title, then the reset times, then usage, and only then cuts
   - below the image is the activity log, newest first, or the selected desk's details: name, type, status, task or folder, and its last 5 actions
   - the last row is a key hint
 - **Keys:** clicking anywhere in a session's room calls that room's agents back from their breaks. Once the last one is seated (2 s, or at once when nobody was away), it opens the session's terminal tab. Tab or the arrows select a desk and show its details on a clipboard, where Enter goes to the session. Esc clears the selection, and `q` or ctrl+c quits. Terminal replies and unmapped keys (`CSI …`) are swallowed.

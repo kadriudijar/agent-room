@@ -34,9 +34,13 @@ test(
         2)
       for (const frame of [...look.seated, look.stand, ...look.walk]) assert.ok(frame.width <= 44 && frame.height <= 38)
     }
-    for (const floor of Object.values(art.floors)) assert.deepEqual(
-      [floor.width, floor.height],
-      [16, 16])
+    for (const floor of Object.values(art.floors)) {
+      assert.equal(
+        floor.width,
+        floor.height)
+      assert.ok(floor.width <= 16)
+    }
+    assert.ok(art.window.width >= 18)
     for (const icon of Object.values(art.icons)) assert.ok(icon.width <= 7 && icon.height <= 7)
   })
 

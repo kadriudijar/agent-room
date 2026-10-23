@@ -120,3 +120,22 @@ test(
       line,
       /[\x00-\x1f\x7f-\x9f‪-‮⁦-⁩]/)
   })
+
+test(
+  'a narrow header drops the title and shortens usage before cutting',
+  () => {
+    const rooms = busy()
+    rooms[2].updatedAt = 10
+    rooms[2].usage = [
+      { kind: 'five_hour', percent: 23.5, resetsAt: '2026-10-23T12:14:00Z' },
+      { kind: 'seven_day', percent: 61, resetsAt: '2026-10-26T14:00:00Z' },
+    ]
+    const line = headerLine(
+      rooms,
+      NOW,
+      80)
+
+    assert.equal(
+      line,
+      '3 rooms · 7 agents · 5 working · 4 helpers · 1 needs you · 5h 23.5% · week 61%')
+  })

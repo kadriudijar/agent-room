@@ -20,7 +20,7 @@ const DESK_H = 56
 const WALL_H = 16
 const PAD = 8
 const CORRIDOR = 16
-const OUTER_WALL = 16
+const OUTER_WALL = 26
 const SIDE_WALL = 6
 const MARGIN = 4
 const SIGN_H = 21
@@ -412,17 +412,17 @@ const drawBuilding = (c: Canvas, box: Box) => {
     SPRITES.wallTop,
     { x: box.x, y: box.y, w: box.w, h: OUTER_WALL },
     art?.wallTop)
-  for (let x = box.x + 20; x + SPRITES.window.w < box.x + box.w - 20; x += 48)
+  for (let x = box.x + 16; x + 24 < box.x + box.w - 16; x += 40)
     if (art) drawImage(
       c,
       art.window,
       x,
-      box.y + 2)
+      box.y + 3)
     else drawSprite(
       c,
       SPRITES.window,
-      x,
-      box.y + 3)
+      x + 4,
+      box.y + 8)
   outlineRect(
     c,
     box,

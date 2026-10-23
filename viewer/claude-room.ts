@@ -89,7 +89,7 @@ export const run = async (focus: Focus = focusSession) => {
     if (selected && !desk) selected = null
     const room = selected && rooms.find(r => r.sessionId === selected!.sessionId)
     const agent = room?.agents.find(a => a.id === selected!.agentId)
-    const cols = Math.floor(fit.office.width / BIG_W)
+    const cols = Math.floor((fit.office.sign.w - 16) / BIG_W)
     const hud: Hud = room && agent
       ? {
         header: headerLine(
