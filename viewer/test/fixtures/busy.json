@@ -1,0 +1,129 @@
+[
+ {
+  "version": 1,
+  "sessionId": "profiles-36",
+  "name": "profiles-36",
+  "cwd": "/x",
+  "pid": 1,
+  "procStart": "",
+  "updatedAt": 0,
+  "agents": [
+   {
+    "id": null,
+    "parentId": null,
+    "name": "main",
+    "type": "main",
+    "description": "",
+    "status": "running",
+    "needsYou": false,
+    "action": {
+     "icon": "edit",
+     "label": "register.ts"
+    }
+   },
+   {
+    "id": "a1",
+    "parentId": null,
+    "name": "Explore",
+    "type": "Explore",
+    "description": "",
+    "status": "running",
+    "needsYou": false,
+    "action": {
+     "icon": "bash",
+     "label": "$ npm test"
+    }
+   },
+   {
+    "id": "a2",
+    "parentId": "a1",
+    "name": "Plan",
+    "type": "Explore",
+    "description": "",
+    "status": "running",
+    "needsYou": false,
+    "action": {
+     "icon": "web",
+     "label": "docs.anthropic.com"
+    }
+   },
+   {
+    "id": "a3",
+    "parentId": null,
+    "name": "reviewer",
+    "type": "Explore",
+    "description": "",
+    "status": "idle",
+    "needsYou": false,
+    "action": null
+   }
+  ],
+  "usage": [],
+  "log": []
+ },
+ {
+  "version": 1,
+  "sessionId": "app-mobile",
+  "name": "app-mobile",
+  "cwd": "/x",
+  "pid": 1,
+  "procStart": "",
+  "updatedAt": 0,
+  "agents": [
+   {
+    "id": null,
+    "parentId": null,
+    "name": "main",
+    "type": "main",
+    "description": "",
+    "status": "idle",
+    "needsYou": true,
+    "action": {
+     "icon": "ask",
+     "label": "Asking you"
+    }
+   }
+  ],
+  "usage": [],
+  "log": []
+ },
+ {
+  "version": 1,
+  "sessionId": "chatbot",
+  "name": "chatbot",
+  "cwd": "/x",
+  "pid": 1,
+  "procStart": "",
+  "updatedAt": 0,
+  "agents": [
+   {
+    "id": null,
+    "parentId": null,
+    "name": "main",
+    "type": "main",
+    "description": "",
+    "status": "running",
+    "needsYou": false,
+    "action": {
+     "icon": "read",
+     "label": "faq.test.ts"
+    }
+   },
+   {
+    "id": "b1",
+    "parentId": null,
+    "name": "general",
+    "type": "Explore",
+    "description": "",
+    "status": "running",
+    "needsYou": false,
+    "action": {
+     "icon": "agent",
+     "label": "find flaky tests"
+    }
+   }
+  ],
+  "usage": [],
+  "log": []
+ }
+]

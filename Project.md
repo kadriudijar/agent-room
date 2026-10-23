@@ -43,6 +43,25 @@ The status file's shape is `RoomFile` in `mod/types/index.d.ts`, which both part
 
 **Key files:** `viewer/rooms.ts`, `viewer/test/rooms.test.ts`
 
+### Office drawing
+
+- **Rooms:** `layoutOffice(rooms, width, height)` places one room per session in a grid with `ceil(sqrt(n))` columns. Rooms are separated by 16 px corridors.
+- **Seating:** desks are 64×56 px and seated depth first, so every helper sits right after the agent that spawned it.
+- **Size:** the desks per row are chosen so the office's shape matches the screen's. The office grows past `width × height` rather than overlap.
+- **No sessions:** with no rooms, one empty room shows a `NO SESSIONS` sign.
+- **Drawing:** `drawOffice(office, rooms, tick, selected)` paints all the art in code (`viewer/sprites.ts`) at 1× logical scale:
+  - grass with scattered trees, cream-tile or wood floors, a navy wall top with the session name and a window, and a plant per room
+  - per desk: a monitor, a desk, a character seen from behind on a chair, and a name tag
+  - main wears a crown; helpers wear a cap
+- **Animation:**
+  - running agents type, with code scrolling on their screen
+  - idle agents lean back with the screen off
+  - an agent that needs you gets a red `!` screen and a red `!` above it, blinking at 1 Hz
+- **Bubbles:** each bubble shows the action's icon and label, cut to fit.
+- **Snapshot:** `node viewer/snapshot.ts <fixture> <out.png> [w h scale]` renders a fixture for checking the art.
+
+**Key files:** `viewer/office.ts`, `viewer/sprites.ts`, `viewer/canvas.ts`, `viewer/png.ts`, `viewer/snapshot.ts`, `viewer/test/office.test.ts`, `viewer/test/fixtures/busy.json`
+
 ## Integrations
 
 - **Claude Code mod API:** `tool.call`, `tool.check`, `turn.start`/`turn.complete`, `session.start`/`session.measure`/`session.end`, `$.agent.list()` and `$.fs`. Tests run with `claude plugin test mod`.

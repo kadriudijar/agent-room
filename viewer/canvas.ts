@@ -32,11 +32,14 @@ export const fillRect = (c: Canvas, x: number, y: number, w: number, h: number, 
       rgb)
 }
 
-// `recolor` swaps palette keys for this draw: a person's body colour, a helper's cap.
-export const drawSprite = (c: Canvas, s: Sprite, x: number, y: number, recolor: Record<string, string> = {}) => {
+export type Clip = { x: number; y: number; w: number; h: number }
+
+// `recolor` swaps palette keys for this draw (a person's body colour); `clip` keeps it inside a box.
+export const drawSprite = (c: Canvas, s: Sprite, x: number, y: number, recolor: Record<string, string> = {}, clip?: Clip) => {
   for (let yy = 0; yy < s.h; yy++)
     for (let xx = 0; xx < s.w; xx++) {
       const key = s.px[yy * s.w + xx]
+      if (clip && (x + xx < clip.x || y + yy < clip.y || x + xx >= clip.x + clip.w || y + yy >= clip.y + clip.h)) continue
       if (key) put(
         c,
         x + xx,

@@ -375,6 +375,25 @@ const sign = sprite(
   ],
   WOOD)
 
+const tree = sprite(
+  [
+    '....oooo....',
+    '..ooGGggoo..',
+    '.oGGgggggdo.',
+    'oGgggggggddo',
+    'oggggGggggdo',
+    'ogggggggdddo',
+    '.oggggggddo.',
+    '..oddddddo..',
+    '...oootoo...',
+    '.....tt.....',
+    '....oTTo....',
+  ],
+  { o: 'outline', g: 'leaf', G: 'leafLight', d: 'leafDark', t: 'woodDark', T: 'wood' })
+const tuft = sprite(
+  ['g.g', '.g.'],
+  { g: 'grassDark' })
+
 const ICON = { o: 'outline', w: 'white', r: 'book1', b: 'book2', y: 'crown', g: 'code1', k: 'black', s: 'skin', c: 'glass', a: 'alert' }
 const icons = {
   read: sprite(
@@ -420,6 +439,8 @@ export const SPRITES = {
   crown,
   cap,
   plant,
+  tree,
+  tuft,
   bookshelf,
   window,
   sign,
