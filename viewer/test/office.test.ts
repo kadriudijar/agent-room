@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import type { DeskAgent, RoomFile } from '../../mod/types/index.d.ts'
 import { drawOffice, layoutOffice } from '../office.ts'
+import { PALETTE } from '../sprites.ts'
 
 const agent = (id: string | null, parentId: string | null = null, extra: Partial<DeskAgent> = {}): DeskAgent => ({
   id,
@@ -201,4 +202,40 @@ test(
         'A',
         'y').data,
       office.board))
+  })
+
+test(
+  'subagents are drawn as interns and main is not',
+  () => {
+    const rooms = [room(
+      'a',
+      [agent(null), agent('a1')])]
+    const office = layoutOffice(
+      rooms,
+      640,
+      400)
+    const c = drawOffice(
+      office,
+      rooms,
+      0,
+      null)
+    const has = (d: { x: number; y: number; w: number; h: number }, [r, g, b]: number[]) => {
+      for (let y = d.y; y < d.y + d.h; y++)
+        for (let x = d.x; x < d.x + d.w; x++) {
+          const i = (y * c.width + x) * 4
+          if (c.data[i] === r && c.data[i + 1] === g && c.data[i + 2] === b) return true
+        }
+      return false
+    }
+
+    assert.equal(
+      has(
+        office.desks[1],
+        PALETTE.intern),
+      true)
+    assert.equal(
+      has(
+        office.desks[0],
+        PALETTE.intern),
+      false)
   })

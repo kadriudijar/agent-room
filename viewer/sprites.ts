@@ -48,6 +48,10 @@ export const PALETTE: Record<string, Rgb> = {
   book3: [90, 160, 90],
   book4: [220, 180, 80],
   select: [255, 220, 60],
+  intern: [124, 196, 84],
+  internStripe: [236, 240, 220],
+  beanie: [222, 84, 60],
+  beanieDark: [170, 56, 44],
   corridor: [196, 192, 184],
   corridorLine: [176, 172, 164],
   rug: [150, 70, 70],
@@ -346,6 +350,15 @@ const walk = [
   ]),
 ]
 
+// Interns (subagents) wear a green striped polo: the body colours become stripes, row by row.
+const internOf = (s: Sprite): Sprite => ({
+  ...s,
+  px: s.px.map((key, i) => (key === 'body' || key === 'bodyDark' ? (Math.floor(i / s.w) % 2 ? 'internStripe' : 'intern') : key)),
+})
+const beanie = sprite(
+  ['..bbbb..', '.bbbbbb.', 'BBBBBBBB'],
+  { b: 'beanie', B: 'beanieDark' })
+
 const crown = sprite(
   ['y.y.y', 'yyyyy', 'YYYYY'],
   { y: 'crown', Y: 'crownDark' })
@@ -582,6 +595,8 @@ export const SPRITES = {
   monitorAlert,
   chair,
   person: { sit, type, lean, stand, walk },
+  intern: { sit: internOf(sit), type: type.map(internOf), lean: internOf(lean), stand: internOf(stand), walk: walk.map(internOf) },
+  beanie,
   crown,
   cap,
   plant,

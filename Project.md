@@ -46,6 +46,9 @@ The status file's shape is `RoomFile` in `mod/types/index.d.ts`, which both part
 
 ### Office drawing
 
+- **Fit:** the layout tries every combination of room columns and desks per row, and keeps the one that lets the office be drawn largest in the tab. Ten rooms fit a 120×35 tab, and draw at 3× in a 200×50 Retina tab. An office too big even at 1× is shrunk by the same factor on both axes.
+- **Interns:** subagents are drawn as interns, in a green striped polo and an orange beanie. The main agent wears its own shirt colour and a crown.
+
 - **Rooms:** `layoutOffice(rooms, width, height)` places one room per session in a grid with `ceil(sqrt(n))` columns. Rooms are separated by 16 px corridors.
 - **Seating:** desks are 64×56 px and seated depth first, so every helper sits right after the agent that spawned it.
 - **Size:** the desks per row are chosen so the office's shape matches the screen's. The office grows past `width × height` rather than overlap.
@@ -65,7 +68,7 @@ The status file's shape is `RoomFile` in `mod/types/index.d.ts`, which both part
 
 ### Breaks
 
-- **Going on break:** an agent that has waited (`idle`) for 5 minutes gets up and walks to the kitchen, leaving an empty chair and a `(break)` name tag at its desk. The 5 minutes count from the status-change time `since`, which the mod stamps. It walks down to the corridor under its room, along it, then into the kitchen over 2 s, and stands there with its name tag.
+- **Going on break:** an agent that has waited (`idle`) for 5 minutes gets up and walks to the kitchen or the lounge (breaks alternate between them), leaving an empty chair and a `(break)` name tag at its desk. The 5 minutes count from the status-change time `since`, which the mod stamps. It walks down to the corridor under its room, along it, then into the room over 2 s, and stands there.
 - **Coming back:** clicking its desk calls it back. It walks to its seat and stays at least another 5 minutes. An agent that starts working again walks straight back.
 
 **Key files:** `viewer/breaks.ts`, `viewer/test/breaks.test.ts`, `viewer/sprites.ts` (`person.stand`, `person.walk`)
@@ -82,7 +85,7 @@ The status file's shape is `RoomFile` in `mod/types/index.d.ts`, which both part
   - row 1 is the header: rooms, agents, working, helpers, needs you, and 5-hour and weekly usage with reset countdowns, from the most recently updated room
   - below the image is the activity log, newest first, or the selected desk's details: name, type, status, task or folder, and its last 5 actions
   - the last row is a key hint
-- **Keys:** clicking a desk goes to its session, after calling its agent back from a break. Tab or the arrows select a desk and show its details on a clipboard, where Enter goes to the session. Esc clears the selection, and `q` or ctrl+c quits. Terminal replies and unmapped keys (`CSI …`) are swallowed.
+- **Keys:** clicking anywhere in a session's room opens that session's terminal tab. A click on a desk also calls its agent back from a break. Tab or the arrows select a desk and show its details on a clipboard, where Enter goes to the session. Esc clears the selection, and `q` or ctrl+c quits. Terminal replies and unmapped keys (`CSI …`) are swallowed.
 - **Go to session:** with a desk selected, Enter brings that session's own Ghostty tab to the front through Ghostty 1.3's AppleScript (`viewer/focus.ts`). The exact tab comes from a title handshake. The viewer finds the session's tty (`ps -o tty= -p <pid>`) and writes a one-off title to it. It asks Ghostty which terminal now shows that title, puts that terminal's old title back, and runs `focus terminal id …`. Without a tty, it falls back to the only tab in the session's folder, or the only one titled with the session name. It never guesses between several. Failures show as the first details line.
 - **Text safety:** every printed line drops C0/C1 control and bidi characters, so text from room files can't inject terminal escapes. The mod strips them from labels too.
 - **Resize:** a resize re-queries the cell size and redraws. A tab under 40×15 shows only `Make this tab bigger`.

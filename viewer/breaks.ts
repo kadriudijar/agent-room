@@ -14,11 +14,11 @@ export const agentKey = (sessionId: string, agentId: string | null) => `${sessio
 // Where a sitter's sprite stands at its desk.
 const seat = (desk: Desk): Point => ({ x: desk.x + desk.w / 2 - 5, y: desk.y + 27 })
 
-const spot = (kitchen: Box, i: number): Point => {
+const spot = (room: Box, i: number): Point => {
   const perRow = Math.max(
     1,
-    Math.floor((kitchen.w - 60) / 14))
-  return { x: kitchen.x + 52 + (i % perRow) * 14, y: kitchen.y + 30 + Math.floor(i / perRow) * 18 }
+    Math.floor((room.w - 60) / 14))
+  return { x: room.x + 52 + (i % perRow) * 14, y: room.y + 30 + Math.floor(i / perRow) * 18 }
 }
 
 const inside = (p: Point, b: Box) => p.x >= b.x && p.x < b.x + b.w && p.y >= b.y && p.y < b.y + b.h
@@ -59,8 +59,11 @@ export const createBreaks = () => {
 
   const update = (office: Office, rooms: RoomFile[], now: number) => {
     const figures = new Map<string, Figure>()
-    const kitchen = office.rooms.find(r => r.kind === 'kitchen')
-    if (!kitchen) return figures
+    // Breaks alternate between the kitchen and the lounge.
+    const rest = ['kitchen', 'lounge']
+      .map(kind => office.rooms.find(r => r.kind === kind))
+      .filter((r): r is Box & { kind: string } => Boolean(r))
+    if (!rest.length) return figures
     let spots = 0
     for (const desk of office.desks) {
       const agent = rooms
@@ -77,8 +80,8 @@ export const createBreaks = () => {
       const isAway = agent.status === 'idle' && now - Math.max(agent.since, state.recalledAt) >= BREAK_AFTER_MS
       const home = seat(desk)
       const away = spot(
-        kitchen,
-        spots)
+        rest[spots % rest.length],
+        Math.floor(spots / rest.length))
       if (isAway) spots++
       if (isAway !== state.isAway) {
         // A recall starts the walk back when the click came, not on the next frame.

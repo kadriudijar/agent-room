@@ -59,22 +59,23 @@ export const layoutOffice = (rooms: RoomFile[], width: number, height: number): 
       : [{ sessionId: '', kind: 'empty' as const, agents: [] }]),
     ...COMMONS.map(kind => ({ sessionId: '', kind, agents: [] })),
   ]
-  const roomCols = Math.ceil(Math.sqrt(cells.length))
-  const roomRows = Math.ceil(cells.length / roomCols)
   const most = Math.max(3, ...cells.map(c => c.agents.length))
   const chrome = { w: MARGIN * 2 + SIDE_WALL * 2 + CORRIDOR * 2, h: MARGIN * 3 + SIGN_H + BOARD_H + OUTER_WALL + CORRIDOR * 2 }
 
-  const sizeFor = (deskCols: number) => {
+  const sizeFor = (roomCols: number, deskCols: number) => {
+    const roomRows = Math.ceil(cells.length / roomCols)
     const sizes = cells.map(c => roomSize(
       c.agents.length || 3,
       deskCols))
     const colW = Array.from(
       { length: roomCols },
-      (_, c) => Math.max(...sizes.filter((_, i) => i % roomCols === c).map(s => s.w)))
+      (_, c) => Math.max(0, ...sizes.filter((_, i) => i % roomCols === c).map(s => s.w)))
     const rowH = Array.from(
       { length: roomRows },
       (_, r) => Math.max(...sizes.filter((_, i) => Math.floor(i / roomCols) === r).map(s => s.h)))
     return {
+      roomCols,
+      deskCols,
       colW,
       rowH,
       w: chrome.w + colW.reduce((a, b) => a + b, 0) + CORRIDOR * (roomCols - 1),
@@ -82,15 +83,19 @@ export const layoutOffice = (rooms: RoomFile[], width: number, height: number): 
     }
   }
 
-  // The desks per row whose office shape is closest to the screen's.
-  const target = width / height
-  let deskCols = 1
-  for (let cols = 1; cols <= most; cols++) {
-    const a = sizeFor(cols)
-    const b = sizeFor(deskCols)
-    if (Math.abs(Math.log(a.w / a.h / target)) < Math.abs(Math.log(b.w / b.h / target))) deskCols = cols
-  }
-  const size = sizeFor(deskCols)
+  // The room and desk columns that let the office be drawn largest in `width × height`.
+  let size = sizeFor(
+    Math.ceil(Math.sqrt(cells.length)),
+    1)
+  const fill = (s: ReturnType<typeof sizeFor>) => Math.min(width / s.w, height / s.h)
+  for (let roomCols = 1; roomCols <= cells.length; roomCols++)
+    for (let deskCols = 1; deskCols <= most; deskCols++) {
+      const candidate = sizeFor(
+        roomCols,
+        deskCols)
+      if (fill(candidate) > fill(size)) size = candidate
+    }
+  const { roomCols, deskCols } = size
   const officeW = Math.max(
     width,
     size.w)
@@ -532,6 +537,7 @@ const nameTag = (c: Canvas, name: string, cx: number, y: number) => {
     PALETTE.outline)
 }
 
+// The main agent wears a crown; interns (subagents) a beanie.
 const hat = (c: Canvas, agent: DeskAgent, x: number, y: number) => {
   if (agent.id === null) drawSprite(
     c,
@@ -540,43 +546,50 @@ const hat = (c: Canvas, agent: DeskAgent, x: number, y: number) => {
     y - 2)
   else drawSprite(
     c,
-    SPRITES.cap,
-    x + 2,
+    SPRITES.beanie,
+    x + 1,
     y)
+}
+
+// A main agent's look: its own shirt colour. An intern's is the same for all, so none is passed.
+const looks = (agent: DeskAgent, sessionId: string) => {
+  const shirt = hash(agent.id ?? sessionId) % 6
+  return {
+    sprites: agent.id === null ? SPRITES.person : SPRITES.intern,
+    recolor: { body: `shirt${shirt}`, bodyDark: `shirt${shirt}d` },
+  }
 }
 
 // An agent away from its desk: walking there or back, or standing in the kitchen.
 const drawFigure = (c: Canvas, agent: DeskAgent, sessionId: string, figure: Figure, tick: number) => {
-  const shirt = hash(agent.id ?? sessionId) % 6
+  const { sprites, recolor } = looks(
+    agent,
+    sessionId)
   drawSprite(
     c,
-    figure.isWalking ? SPRITES.person.walk[Math.floor(tick / 2) % 2] : SPRITES.person.stand,
+    figure.isWalking ? sprites.walk[Math.floor(tick / 2) % 2] : sprites.stand,
     figure.x,
     figure.y,
-    { body: `shirt${shirt}`, bodyDark: `shirt${shirt}d` })
+    recolor)
   hat(
     c,
     agent,
     figure.x,
     figure.y)
-  if (!figure.isWalking) nameTag(
-    c,
-    agent.name,
-    figure.x + 5,
-    figure.y + 16)
 }
 
 const drawDesk = (c: Canvas, desk: Desk, agent: DeskAgent, tick: number, isSelected: boolean, isAway: boolean) => {
-  const shirt = hash(agent.id ?? desk.sessionId) % 6
-  const recolor = { body: `shirt${shirt}`, bodyDark: `shirt${shirt}d` }
+  const { sprites, recolor } = looks(
+    agent,
+    desk.sessionId)
   const cx = desk.x + DESK_W / 2
   const isRunning = agent.status === 'running' && !isAway
   const monitor = agent.needsYou && !isAway
     ? SPRITES.monitorAlert
     : isRunning ? SPRITES.monitorOn[Math.floor(tick / 4) % 2] : SPRITES.monitorOff
   const person = isRunning
-    ? SPRITES.person.type[Math.floor(tick / 2) % 2]
-    : agent.status === 'idle' ? SPRITES.person.lean : SPRITES.person.sit
+    ? sprites.type[Math.floor(tick / 2) % 2]
+    : agent.status === 'idle' ? sprites.lean : sprites.sit
 
   if (isSelected) outlineRect(
     c,

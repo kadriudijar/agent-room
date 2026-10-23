@@ -13,6 +13,7 @@ import { createRoomReader } from './rooms.ts'
 import {
   deleteImages,
   deskAt,
+  roomAt,
   enterScreen,
   fitScale,
   type Input,
@@ -27,7 +28,7 @@ import {
 import { detailLines, headerLine, logLines } from './text.ts'
 
 const FRAME_MS = 200
-const HINT = 'CLICK A DESK: GO TO ITS SESSION · TAB: DETAILS · Q: QUIT'
+const HINT = 'CLICK A ROOM: OPEN ITS TERMINAL · TAB: DETAILS · Q: QUIT'
 
 type Selection = { sessionId: string; agentId: string | null }
 export type Focus = typeof focusSession
@@ -139,14 +140,9 @@ export const run = async (focus: Focus = focusSession) => {
     message = null
   }
 
-  // Calls the agent back from a break, then brings its session's tab to the front.
-  const goTo = async (desk: Desk) => {
-    breaks.recall(
-      agentKey(
-        desk.sessionId,
-        desk.agentId),
-      Date.now())
-    const room = rooms.find(r => r.sessionId === desk.sessionId)
+  // Brings a session's terminal tab to the front.
+  const goTo = async (sessionId: string) => {
+    const room = rooms.find(r => r.sessionId === sessionId)
     if (!room) return
     const result = await focus(room)
     message = result.ok ? null : result.reason
@@ -159,14 +155,25 @@ export const run = async (focus: Focus = focusSession) => {
   }
 
   const onInput = async (input: Input) => {
+    // A click in a room opens its session's terminal; on a desk it also calls that agent back from a break.
     if (input.kind === 'click') {
-      const desk = fit && deskAt(
+      if (!fit) return
+      const desk = deskAt(
         fit,
         size,
         input.col,
         input.row)
-      select(desk)
-      if (desk) await goTo(desk)
+      if (desk) breaks.recall(
+        agentKey(
+          desk.sessionId,
+          desk.agentId),
+        Date.now())
+      const room = roomAt(
+        fit,
+        size,
+        input.col,
+        input.row)
+      if (room) await goTo(room.sessionId)
       return
     }
     switch (input.key) {
@@ -178,8 +185,7 @@ export const run = async (focus: Focus = focusSession) => {
       case 'left':
       case 'up': return step(-1)
       case 'enter': {
-        const desk = selected && desks.find(d => d.sessionId === selected!.sessionId && d.agentId === selected!.agentId)
-        if (desk) await goTo(desk)
+        if (selected) await goTo(selected.sessionId)
       }
     }
   }

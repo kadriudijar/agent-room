@@ -174,3 +174,40 @@ test(
         .size,
       0)
   })
+
+test(
+  'breaks are taken in the kitchen or the lounge',
+  () => {
+    const agents = Array.from(
+      { length: 6 },
+      (_, i) => ({ ...agent('idle', T0), id: i ? `h${i}` : null, name: `h${i}` }))
+    const rooms = [{ ...room(agents[0]), agents }]
+    const office = layoutOffice(
+      rooms,
+      640,
+      400)
+    const breaks = createBreaks()
+    breaks.update(
+      office,
+      rooms,
+      T0 + BREAK_AFTER_MS)
+    const figures = [...breaks
+      .update(
+        office,
+        rooms,
+        T0 + BREAK_AFTER_MS + WALK_MS)
+      .values()]
+    const where = (kind: string) => figures.filter(f => {
+      const r = office.rooms.find(r => r.kind === kind)!
+      return f.x >= r.x && f.x < r.x + r.w && f.y >= r.y && f.y < r.y + r.h
+    }).length
+
+    assert.equal(
+      figures.length,
+      6)
+    assert.ok(where('kitchen') > 0)
+    assert.ok(where('lounge') > 0)
+    assert.equal(
+      where('kitchen') + where('lounge'),
+      6)
+  })

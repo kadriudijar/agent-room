@@ -1,5 +1,5 @@
 import type { RoomFile } from '../mod/types/index.d.ts'
-import { type Desk, layoutOffice, type Office } from './office.ts'
+import { type Desk, layoutOffice, type Office, type RoomBox } from './office.ts'
 
 export type Size = { cols: number; rows: number; cellW: number; cellH: number }
 export type Key = 'up' | 'down' | 'left' | 'right' | 'enter' | 'esc' | 'q' | 'tab'
@@ -20,26 +20,56 @@ export const fitScale = (rooms: RoomFile[], size: Size): Fit => {
       rooms,
       Math.floor(pxW / scale),
       Math.floor(pxH / scale))
-    if (office.width * scale <= pxW && office.height * scale <= pxH || scale === 1)
-      return {
-        scale,
-        office,
-        cols: Math.min(
-          size.cols,
-          Math.ceil(office.width * scale / size.cellW)),
-        rows: Math.min(
-          size.rows,
-          Math.ceil(office.height * scale / size.cellH)),
-      }
+    const fits = office.width * scale <= pxW && office.height * scale <= pxH
+    if (!fits && scale > 1) continue
+    // Too big even at 1×: the terminal shrinks it into the cells, so both axes shrink by one factor.
+    const k = fits ? scale : Math.min(
+      pxW / office.width,
+      pxH / office.height)
+    return {
+      scale,
+      office,
+      cols: Math.min(
+        size.cols,
+        Math.ceil(office.width * k / size.cellW)),
+      rows: Math.min(
+        size.rows,
+        Math.ceil(office.height * k / size.cellH)),
+    }
   }
   throw new Error('unreachable')
 }
 
-// The desk under a click at 1-based terminal cell (col, row); the image starts on row 1.
+// A click at 1-based terminal cell (col, row) as a point in the office; the image starts at row 1.
+const pointAt = (fit: Fit, size: Size, col: number, row: number) => ({
+  x: ((col - 1) * size.cellW + size.cellW / 2) * (fit.office.width / (fit.cols * size.cellW)),
+  y: ((row - 1) * size.cellH + size.cellH / 2) * (fit.office.height / (fit.rows * size.cellH)),
+})
+
+const contains = (b: { x: number; y: number; w: number; h: number }, { x, y }: { x: number; y: number }) =>
+  x >= b.x && x < b.x + b.w && y >= b.y && y < b.y + b.h
+
 export const deskAt = (fit: Fit, size: Size, col: number, row: number): Desk | undefined => {
-  const x = ((col - 1) * size.cellW + size.cellW / 2) * (fit.office.width / (fit.cols * size.cellW))
-  const y = ((row - 1) * size.cellH + size.cellH / 2) * (fit.office.height / (fit.rows * size.cellH))
-  return fit.office.desks.find(d => x >= d.x && x < d.x + d.w && y >= d.y && y < d.y + d.h)
+  const point = pointAt(
+    fit,
+    size,
+    col,
+    row)
+  return fit.office.desks.find(d => contains(
+    d,
+    point))
+}
+
+// The session room under a click; the lounge, the kitchen and the corridors are none.
+export const roomAt = (fit: Fit, size: Size, col: number, row: number): RoomBox | undefined => {
+  const point = pointAt(
+    fit,
+    size,
+    col,
+    row)
+  return fit.office.rooms.find(r => r.kind === 'session' && contains(
+    r,
+    point))
 }
 
 const KEYS: Record<string, Key> = {
