@@ -211,3 +211,31 @@ test(
       where('kitchen') + where('lounge'),
       6)
   })
+
+test(
+  'a recall says when the agent is back at its desk',
+  () => {
+    const { rooms, office, breaks } = setup(agent(
+      'idle',
+      T0))
+    const away = T0 + BREAK_AFTER_MS
+    breaks.update(
+      office,
+      rooms,
+      away)
+    breaks.update(
+      office,
+      rooms,
+      away + WALK_MS)
+
+    assert.equal(
+      breaks.recall(
+        's:',
+        away + WALK_MS),
+      away + WALK_MS * 2)
+    assert.equal(
+      breaks.recall(
+        'nobody:',
+        away),
+      away)
+  })

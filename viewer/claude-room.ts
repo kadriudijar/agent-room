@@ -12,7 +12,6 @@ import { encodePng } from './png.ts'
 import { createRoomReader } from './rooms.ts'
 import {
   deleteImages,
-  deskAt,
   roomAt,
   enterScreen,
   fitScale,
@@ -155,25 +154,29 @@ export const run = async (focus: Focus = focusSession) => {
   }
 
   const onInput = async (input: Input) => {
-    // A click in a room opens its session's terminal; on a desk it also calls that agent back from a break.
+    // A click in a room calls its agents back from their breaks, then opens its session's terminal.
     if (input.kind === 'click') {
       if (!fit) return
-      const desk = deskAt(
-        fit,
-        size,
-        input.col,
-        input.row)
-      if (desk) breaks.recall(
-        agentKey(
-          desk.sessionId,
-          desk.agentId),
-        Date.now())
       const room = roomAt(
         fit,
         size,
         input.col,
         input.row)
-      if (room) await goTo(room.sessionId)
+      if (!room) return
+      // Everyone on break walks back to the room first; the terminal opens once the last one is seated.
+      const now = Date.now()
+      const seatedAt = Math.max(
+        now,
+        ...desks
+          .filter(d => d.sessionId === room.sessionId)
+          .map(d => breaks.recall(
+            agentKey(
+              d.sessionId,
+              d.agentId),
+            now)))
+      setTimeout(
+        () => void goTo(room.sessionId),
+        seatedAt - now)
       return
     }
     switch (input.key) {

@@ -100,10 +100,12 @@ export const createBreaks = () => {
     return figures
   }
 
-  // The developer clicked the desk: the agent comes back and stays another 5 minutes.
+  // The developer clicked: the agent comes back and stays another 5 minutes. Answers when it is seated.
   const recall = (key: string, now: number) => {
     const state = states.get(key)
-    if (state) state.recalledAt = now
+    if (!state) return now
+    state.recalledAt = now
+    return state.isAway ? now + WALK_MS : now
   }
 
   return { update, recall }
