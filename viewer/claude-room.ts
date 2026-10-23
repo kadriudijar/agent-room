@@ -6,6 +6,7 @@ import { join } from 'node:path'
 import type { RoomFile } from '../mod/types/index.d.ts'
 import { scaleCanvas } from './canvas.ts'
 import { drawOffice, type Desk } from './office.ts'
+import { focusSession } from './focus.ts'
 import { encodePng } from './png.ts'
 import { createRoomReader } from './rooms.ts'
 import {
@@ -27,11 +28,10 @@ import { detailLines, headerLine, logLines } from './text.ts'
 const FRAME_MS = 200
 const LOG_ROWS = 6
 const DETAIL_ROWS = 8
-const HINT = 'click or Tab: pick a desk · Esc: back · q: quit'
+const HINT = 'click or Tab: pick a desk · Enter: go to its session · Esc: back · q: quit'
 
 type Selection = { sessionId: string; agentId: string | null }
-type FocusResult = { ok: true } | { ok: false; reason: string }
-export type Focus = (room: RoomFile) => Promise<FocusResult>
+export type Focus = typeof focusSession
 
 const dir = join(
   process.env.CLAUDE_CONFIG_DIR ?? join(
@@ -41,7 +41,7 @@ const dir = join(
 
 const row = (n: number, text: string) => `\x1b[${n};1H\x1b[2K${text}`
 
-export const run = async (focus?: Focus) => {
+export const run = async (focus: Focus = focusSession) => {
   mkdirSync(
     dir,
     { recursive: true })
@@ -158,7 +158,7 @@ export const run = async (focus?: Focus) => {
       case 'up': return step(-1)
       case 'enter': {
         const room = selected && rooms.find(r => r.sessionId === selected!.sessionId)
-        if (!room || !focus) return
+        if (!room) return
         const result = await focus(room)
         message = result.ok ? null : result.reason
       }
