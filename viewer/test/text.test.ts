@@ -91,3 +91,29 @@ test(
     assert.ok(lines.some(line => line.includes('$ npm test')))
     assert.ok(lines.every(line => [...line].length <= 80))
   })
+
+test(
+  'control and bidi characters from room files never reach the terminal',
+  () => {
+    const rooms = busy()
+    rooms[0].name = 'evil\x1b]2;pwned\x07‮'
+    rooms[0].log = [{ at: NOW, agentId: null, icon: 'bash', label: '$ printf \x1b[2J\x9b' }]
+    const lines = [
+      ...logLines(
+        rooms,
+        6,
+        200),
+      headerLine(
+        rooms,
+        NOW,
+        200),
+      ...detailLines(
+        rooms[0],
+        rooms[0].agents[0],
+        200),
+    ]
+
+    for (const line of lines) assert.doesNotMatch(
+      line,
+      /[\x00-\x1f\x7f-\x9f‪-‮⁦-⁩]/)
+  })

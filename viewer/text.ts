@@ -14,10 +14,13 @@ const oneLine = (text: string) => text
   .replace(/\s+/g, ' ')
   .trim()
 
-// Cuts to `cols` code points, ending with `…` when cut.
+// Room files are written from tool input: control and bidi characters would reach the terminal as escapes.
+const UNSAFE = /[\x00-\x1f\x7f-\x9f\u202a-\u202e\u2066-\u2069]/g
+
+// Cuts to `cols` code points, ending with `…` when cut; every printed line passes through here.
 export const cut = (text: string, cols: number) => {
-  const chars = [...text]
-  return chars.length <= cols ? text : `${chars
+  const chars = [...text.replace(UNSAFE, '')]
+  return chars.length <= cols ? chars.join('') : `${chars
     .slice(
       0,
       Math.max(

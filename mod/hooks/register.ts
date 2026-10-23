@@ -18,6 +18,7 @@ const seen = new Map<string, DeskAgent>()
 const oneLine = (text: string) => {
   const line = text
     .replace(/\s+/g, ' ')
+    .replace(/[\x00-\x1f\x7f-\x9f\u202a-\u202e\u2066-\u2069]/g, '')
     .trim()
   return line.length > 80
     ? `${line.slice(
