@@ -34,6 +34,15 @@ The status file's shape is `RoomFile` in `mod/types/index.d.ts`, which both part
 
 **Key files:** `mod/hooks/register.ts`, `mod/types/index.d.ts`, `mod/.claude-plugin/plugin.json`, `mod/tests/room.test.ts`
 
+### Viewer: reading rooms
+
+- **Reading:** `createRoomReader(dir).read(now)` returns the live rooms in `~/.claude/agent-room/`, sorted by name.
+- **Partial files:** a file it catches half-written or unreadable keeps its last good parse.
+- **Liveness:** a room counts as live while its pid exists and the process's start time, from `TZ=UTC ps -o lstart=`, equals the file's `procStart`. That catches pid reuse. Checks are cached for 5 s.
+- **Cleanup:** a dead room's file is deleted. A room with `pid: 0` counts only while it was updated in the last 10 s, and is never deleted.
+
+**Key files:** `viewer/rooms.ts`, `viewer/test/rooms.test.ts`
+
 ## Integrations
 
 - **Claude Code mod API:** `tool.call`, `tool.check`, `turn.start`/`turn.complete`, `session.start`/`session.measure`/`session.end`, `$.agent.list()` and `$.fs`. Tests run with `claude plugin test mod`.
