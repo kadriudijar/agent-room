@@ -1,6 +1,7 @@
 import type { DeskAgent, RoomFile } from '../mod/types/index.d.ts'
 import { type Canvas, createCanvas, drawSprite, drawText, fillRect, GLYPH_H, GLYPH_W } from './canvas.ts'
 import { PALETTE, type Rgb, SPRITES, type Sprite } from './sprites.ts'
+import { agentKey, type Figure } from './breaks.ts'
 import type { Line } from './text.ts'
 
 export type Box = { x: number; y: number; w: number; h: number }
@@ -519,20 +520,63 @@ const drawBubble = (c: Canvas, desk: Desk, agent: DeskAgent) => {
     PALETTE.outline)
 }
 
-const drawDesk = (c: Canvas, desk: Desk, agent: DeskAgent, tick: number, isSelected: boolean) => {
+const nameTag = (c: Canvas, name: string, cx: number, y: number) => {
+  const text = fit(
+    name,
+    DESK_W - 2)
+  drawText(
+    c,
+    text,
+    cx - Math.floor(text.length * GLYPH_W / 2),
+    y,
+    PALETTE.outline)
+}
+
+const hat = (c: Canvas, agent: DeskAgent, x: number, y: number) => {
+  if (agent.id === null) drawSprite(
+    c,
+    SPRITES.crown,
+    x + 3,
+    y - 2)
+  else drawSprite(
+    c,
+    SPRITES.cap,
+    x + 2,
+    y)
+}
+
+// An agent away from its desk: walking there or back, or standing in the kitchen.
+const drawFigure = (c: Canvas, agent: DeskAgent, sessionId: string, figure: Figure, tick: number) => {
+  const shirt = hash(agent.id ?? sessionId) % 6
+  drawSprite(
+    c,
+    figure.isWalking ? SPRITES.person.walk[Math.floor(tick / 2) % 2] : SPRITES.person.stand,
+    figure.x,
+    figure.y,
+    { body: `shirt${shirt}`, bodyDark: `shirt${shirt}d` })
+  hat(
+    c,
+    agent,
+    figure.x,
+    figure.y)
+  if (!figure.isWalking) nameTag(
+    c,
+    agent.name,
+    figure.x + 5,
+    figure.y + 16)
+}
+
+const drawDesk = (c: Canvas, desk: Desk, agent: DeskAgent, tick: number, isSelected: boolean, isAway: boolean) => {
   const shirt = hash(agent.id ?? desk.sessionId) % 6
   const recolor = { body: `shirt${shirt}`, bodyDark: `shirt${shirt}d` }
   const cx = desk.x + DESK_W / 2
-  const isRunning = agent.status === 'running'
-  const monitor = agent.needsYou
+  const isRunning = agent.status === 'running' && !isAway
+  const monitor = agent.needsYou && !isAway
     ? SPRITES.monitorAlert
     : isRunning ? SPRITES.monitorOn[Math.floor(tick / 4) % 2] : SPRITES.monitorOff
   const person = isRunning
     ? SPRITES.person.type[Math.floor(tick / 2) % 2]
     : agent.status === 'idle' ? SPRITES.person.lean : SPRITES.person.sit
-  const name = fit(
-    agent.name,
-    DESK_W - 2)
 
   if (isSelected) outlineRect(
     c,
@@ -548,34 +592,30 @@ const drawDesk = (c: Canvas, desk: Desk, agent: DeskAgent, tick: number, isSelec
     SPRITES.desk,
     cx - 14,
     desk.y + 25)
-  drawSprite(
-    c,
-    person,
-    cx - 5,
-    desk.y + 27,
-    recolor)
-  if (agent.id === null) drawSprite(
-    c,
-    SPRITES.crown,
-    cx - 2,
-    desk.y + 25)
-  else drawSprite(
-    c,
-    SPRITES.cap,
-    cx - 3,
-    desk.y + 27)
+  if (!isAway) {
+    drawSprite(
+      c,
+      person,
+      cx - 5,
+      desk.y + 27,
+      recolor)
+    hat(
+      c,
+      agent,
+      cx - 5,
+      desk.y + 27)
+  }
   drawSprite(
     c,
     SPRITES.chair,
     cx - 7,
     desk.y + 40)
-  drawText(
+  nameTag(
     c,
-    name,
-    cx - Math.floor(name.length * GLYPH_W / 2),
-    desk.y + 50,
-    PALETTE.outline)
-  drawBubble(
+    isAway ? `${agent.name} (break)` : agent.name,
+    cx,
+    desk.y + 50)
+  if (!isAway) drawBubble(
     c,
     desk,
     agent)
@@ -587,7 +627,7 @@ const drawDesk = (c: Canvas, desk: Desk, agent: DeskAgent, tick: number, isSelec
     desk.y + 14)
 }
 
-export const drawOffice = (office: Office, rooms: RoomFile[], tick: number, selected: Desk | null, hud?: Hud): Canvas => {
+export const drawOffice = (office: Office, rooms: RoomFile[], tick: number, selected: Desk | null, hud?: Hud, figures: Map<string, Figure> = new Map()): Canvas => {
   const c = createCanvas(
     office.width,
     office.height,
@@ -608,7 +648,24 @@ export const drawOffice = (office: Office, rooms: RoomFile[], tick: number, sele
       desk,
       agent,
       tick,
-      selected?.sessionId === desk.sessionId && selected.agentId === desk.agentId)
+      selected?.sessionId === desk.sessionId && selected.agentId === desk.agentId,
+      figures.has(agentKey(
+        desk.sessionId,
+        desk.agentId)))
+  }
+  for (const desk of office.desks) {
+    const figure = figures.get(agentKey(
+      desk.sessionId,
+      desk.agentId))
+    const agent = rooms
+      .find(r => r.sessionId === desk.sessionId)
+      ?.agents.find(a => a.id === desk.agentId)
+    if (figure && agent) drawFigure(
+      c,
+      agent,
+      desk.sessionId,
+      figure,
+      tick)
   }
   if (hud) {
     drawSign(

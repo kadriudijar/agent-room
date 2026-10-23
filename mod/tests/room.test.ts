@@ -313,3 +313,28 @@ test(
     expect(w.writes.length > before)
       .toBe(true)
   })
+
+test(
+  'a status change stamps since',
+  async ($, on) => {
+    const w = world(on)
+    on(
+      'turn.start',
+      (_, e) => ({ turnId: e.turnId }))
+    on(
+      'turn.complete',
+      () => ({ text: '' }))
+    await $.session.start({ cwd: '/Users/dev/app', surface: 'terminal', isInteractive: true })
+    await w.clock.advance(1_000)
+    await $.turn.start({ text: 'go', turnId: 't1' } as never)
+    await w.clock.advance(1_000)
+    const started = w.last().agents[0].since
+    await w.clock.advance(2_000)
+    await $.turn.complete({ turnId: 't1', answer: '' } as never)
+    await w.clock.advance(300)
+
+    expect(w.last().agents[0].since > started)
+      .toBe(true)
+    expect(w.last().agents[0].status)
+      .toBe('idle')
+  })

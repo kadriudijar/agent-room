@@ -4,6 +4,7 @@ import { mkdirSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 import type { RoomFile } from '../mod/types/index.d.ts'
+import { agentKey, createBreaks } from './breaks.ts'
 import { GLYPH_W, scaleCanvas } from './canvas.ts'
 import { BOARD_LINES, drawOffice, type Desk, type Hud } from './office.ts'
 import { focusSession } from './focus.ts'
@@ -26,7 +27,7 @@ import {
 import { detailLines, headerLine, logLines } from './text.ts'
 
 const FRAME_MS = 200
-const HINT = 'CLICK OR TAB: PICK A DESK · Q: QUIT'
+const HINT = 'CLICK A DESK: GO TO ITS SESSION · TAB: DETAILS · Q: QUIT'
 
 type Selection = { sessionId: string; agentId: string | null }
 export type Focus = typeof focusSession
@@ -50,6 +51,7 @@ export const run = async (focus: Focus = focusSession) => {
     process.exit(1)
   }
   const reader = createRoomReader(dir)
+  const breaks = createBreaks()
   let size: Size = await querySize()
   let tick = 0
   let selected: Selection | null = null
@@ -115,7 +117,11 @@ export const run = async (focus: Focus = focusSession) => {
         rooms,
         tick,
         desk ?? null,
-        hud),
+        hud,
+        breaks.update(
+          fit.office,
+          rooms,
+          Date.now())),
       fit.scale))
     if (!lastPng || !png.equals(lastPng)) {
       showImage(
@@ -131,8 +137,19 @@ export const run = async (focus: Focus = focusSession) => {
   const select = (desk: Desk | undefined) => {
     selected = desk ? { sessionId: desk.sessionId, agentId: desk.agentId } : null
     message = null
-    lastPng = null
-    process.stdout.write('\x1b[2J')
+  }
+
+  // Calls the agent back from a break, then brings its session's tab to the front.
+  const goTo = async (desk: Desk) => {
+    breaks.recall(
+      agentKey(
+        desk.sessionId,
+        desk.agentId),
+      Date.now())
+    const room = rooms.find(r => r.sessionId === desk.sessionId)
+    if (!room) return
+    const result = await focus(room)
+    message = result.ok ? null : result.reason
   }
 
   const step = (by: number) => {
@@ -143,11 +160,13 @@ export const run = async (focus: Focus = focusSession) => {
 
   const onInput = async (input: Input) => {
     if (input.kind === 'click') {
-      if (fit) select(deskAt(
+      const desk = fit && deskAt(
         fit,
         size,
         input.col,
-        input.row))
+        input.row)
+      select(desk)
+      if (desk) await goTo(desk)
       return
     }
     switch (input.key) {
@@ -159,10 +178,8 @@ export const run = async (focus: Focus = focusSession) => {
       case 'left':
       case 'up': return step(-1)
       case 'enter': {
-        const room = selected && rooms.find(r => r.sessionId === selected!.sessionId)
-        if (!room) return
-        const result = await focus(room)
-        message = result.ok ? null : result.reason
+        const desk = selected && desks.find(d => d.sessionId === selected!.sessionId && d.agentId === selected!.agentId)
+        if (desk) await goTo(desk)
       }
     }
   }

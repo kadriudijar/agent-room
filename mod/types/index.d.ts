@@ -11,6 +11,8 @@ export type DeskAgent = {
   type: string
   description: string
   status: 'running' | 'idle' | 'done'
+  // When `status` last changed, ms since the epoch.
+  since: number
   needsYou: boolean
   action: Action | null
 }

@@ -63,6 +63,13 @@ The status file's shape is `RoomFile` in `mod/types/index.d.ts`, which both part
 
 **Key files:** `viewer/office.ts`, `viewer/sprites.ts`, `viewer/canvas.ts`, `viewer/png.ts`, `viewer/snapshot.ts`, `viewer/test/office.test.ts`, `viewer/test/fixtures/busy.json`
 
+### Breaks
+
+- **Going on break:** an agent that has waited (`idle`) for 5 minutes gets up and walks to the kitchen, leaving an empty chair and a `(break)` name tag at its desk. The 5 minutes count from the status-change time `since`, which the mod stamps. It walks down to the corridor under its room, along it, then into the kitchen over 2 s, and stands there with its name tag.
+- **Coming back:** clicking its desk calls it back. It walks to its seat and stays at least another 5 minutes. An agent that starts working again walks straight back.
+
+**Key files:** `viewer/breaks.ts`, `viewer/test/breaks.test.ts`, `viewer/sprites.ts` (`person.stand`, `person.walk`)
+
 ### claude-room (full screen in Ghostty)
 
 - **Startup:** `viewer/claude-room.ts` switches to the alternate screen, turns on mouse reporting, and probes for kitty graphics. If the probe fails it prints `claude-room needs a terminal with kitty graphics (Ghostty, kitty).` and exits 1.
@@ -75,7 +82,7 @@ The status file's shape is `RoomFile` in `mod/types/index.d.ts`, which both part
   - row 1 is the header: rooms, agents, working, helpers, needs you, and 5-hour and weekly usage with reset countdowns, from the most recently updated room
   - below the image is the activity log, newest first, or the selected desk's details: name, type, status, task or folder, and its last 5 actions
   - the last row is a key hint
-- **Keys:** click a desk, or use Tab or the arrows, to select it. Esc clears the selection, and `q` or ctrl+c quits.
+- **Keys:** clicking a desk goes to its session, after calling its agent back from a break. Tab or the arrows select a desk and show its details on a clipboard, where Enter goes to the session. Esc clears the selection, and `q` or ctrl+c quits. Terminal replies and unmapped keys (`CSI …`) are swallowed.
 - **Go to session:** with a desk selected, Enter brings that session's own Ghostty tab to the front through Ghostty 1.3's AppleScript (`viewer/focus.ts`). The exact tab comes from a title handshake. The viewer finds the session's tty (`ps -o tty= -p <pid>`) and writes a one-off title to it. It asks Ghostty which terminal now shows that title, puts that terminal's old title back, and runs `focus terminal id …`. Without a tty, it falls back to the only tab in the session's folder, or the only one titled with the session name. It never guesses between several. Failures show as the first details line.
 - **Text safety:** every printed line drops C0/C1 control and bidi characters, so text from room files can't inject terminal escapes. The mod strips them from labels too.
 - **Resize:** a resize re-queries the cell size and redraws. A tab under 40×15 shows only `Make this tab bigger`.

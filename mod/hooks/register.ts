@@ -90,16 +90,22 @@ export const actionOf = (tool: string, input: unknown): Action => {
   }
 }
 
-const mainDesk = (): DeskAgent => ({
+const mainDesk = (since = 0): DeskAgent => ({
   id: null,
   parentId: null,
   name: 'main',
   type: 'main',
   description: '',
   status: 'idle',
+  since,
   needsYou: false,
   action: null,
 })
+
+const setStatus = (agent: DeskAgent, status: DeskAgent['status'], now: number) => {
+  if (agent.status !== status) agent.since = now
+  agent.status = status
+}
 
 const statusOf = (status: AgentInfo['status']): DeskAgent['status'] =>
   status === 'running' || status === 'pending' ? 'running'
@@ -164,6 +170,7 @@ const refreshAgents = async ($: EngineInterface) => {
         type: info.type,
         description: info.description,
         status,
+        since: known && known.status === status ? known.since : now,
         needsYou: false,
         action: known?.action ?? null,
       }
@@ -255,7 +262,7 @@ const init = async ($: EngineInterface) => {
     cwd: await $.session.cwd(),
     pid: entry?.pid ?? 0,
     procStart: entry?.procStart ?? '',
-    agents: [mainDesk()],
+    agents: [mainDesk(await $.clock.now())],
     usage: usageOf((await $.session.usage()).rateLimits),
     log: [],
   }
@@ -296,7 +303,10 @@ export const register: Register = on => {
         agent.action = actionOf(
           e.tool,
           e)
-        agent.status = 'running'
+        setStatus(
+          agent,
+          'running',
+          await $.clock.now())
         if (e.tool === 'AskUserQuestion') wait(
           e.agentId,
           e.tool_use_id ?? 'question',
@@ -331,7 +341,10 @@ export const register: Register = on => {
   on(
     'turn.start',
     async ($, e, next) => {
-      if (e.agentId === undefined && room) room.agents[0].status = 'running'
+      if (e.agentId === undefined && room) setStatus(
+        room.agents[0],
+        'running',
+        await $.clock.now())
       return next(e)
     })
 
@@ -339,9 +352,13 @@ export const register: Register = on => {
     'turn.complete',
     async ($, e, next) => {
       waiting.delete(e.agentId ?? '')
-      if (e.agentId === undefined && room) Object.assign(
-        room.agents[0],
-        { status: 'idle', action: null })
+      if (e.agentId === undefined && room) {
+        setStatus(
+          room.agents[0],
+          'idle',
+          await $.clock.now())
+        room.agents[0].action = null
+      }
       return next(e)
     })
 

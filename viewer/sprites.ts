@@ -310,6 +310,42 @@ const lean = sprite(
     '.obbbbbbbo',
   ],
   PERSON)
+// Standing and walking, seen from the front.
+const FRONT = { ...PERSON, k: 'black', D: 'navy' }
+const front = (legs: string[]) => sprite(
+  [
+    '...oooo...',
+    '..ohhhho..',
+    '.ohhhhhho.',
+    '.ohsssSho.',
+    '.osksskso.',
+    '..osssso..',
+    '..obbbbo..',
+    '.obbbbbbo.',
+    'obbbbbbbbo',
+    'sbBbbbbBbs',
+    '.obbbbbbo.',
+    ...legs,
+  ],
+  FRONT)
+const stand = front([
+  '..oDDDDo..',
+  '..oD..Do..',
+  '..oo..oo..',
+])
+const walk = [
+  front([
+    '..oDDDDo..',
+    '.oD....Do.',
+    '.oo....oo.',
+  ]),
+  front([
+    '..oDDDDo..',
+    '...oDDo...',
+    '...oooo...',
+  ]),
+]
+
 const crown = sprite(
   ['y.y.y', 'yyyyy', 'YYYYY'],
   { y: 'crown', Y: 'crownDark' })
@@ -545,7 +581,7 @@ export const SPRITES = {
   monitorOn,
   monitorAlert,
   chair,
-  person: { sit, type, lean },
+  person: { sit, type, lean, stand, walk },
   crown,
   cap,
   plant,
