@@ -34,7 +34,7 @@ Every Claude Code session you have open becomes a room in a cozy 8-bit pixel off
 ## Install
 
 ```bash
-git clone <this repo> ~/repos/agent-room
+git clone https://github.com/kadriudijar/agent-room.git ~/repos/agent-room
 cd ~/repos/agent-room
 ./install.sh             # links the mod into ~/.claude/skills and claude-room into ~/.local/bin
 ./install.sh --uninstall # removes only the links into this repo
