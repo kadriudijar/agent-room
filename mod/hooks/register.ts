@@ -9,6 +9,7 @@ type Room = Omit<RoomFile, 'updatedAt'>
 let room: Room | undefined
 let file = ''
 let lastText = ''
+let lastWriteAt = 0
 let configDir = ''
 // A spare (pre-warmed) or SDK-run session is not one the developer opened: it writes no room.
 let hidden = false
@@ -16,6 +17,8 @@ let wroteFile = false
 let timers: { cancel: () => void }[] = []
 // When each finished subagent was first seen done, so its desk clears 10 s later.
 const doneAt = new Map<string, number>()
+// Tool calls waiting on the developer (a permission ask, a question), per agent ('' is main).
+const waiting = new Map<string, Set<string>>()
 // Desks seen before $.agent.list() names them, keyed by agent id.
 const seen = new Map<string, DeskAgent>()
 
@@ -161,7 +164,7 @@ const refreshAgents = async ($: EngineInterface) => {
         type: info.type,
         description: info.description,
         status,
-        needsYou: known?.needsYou ?? false,
+        needsYou: false,
         action: known?.action ?? null,
       }
     })
@@ -170,6 +173,17 @@ const refreshAgents = async ($: EngineInterface) => {
   const pending = [...seen.values()].filter(agent => !listed.some(info => info.id === agent.id))
   for (const info of listed) seen.delete(info.id)
   room.agents = [room.agents[0], ...desks, ...pending]
+  for (const agent of room.agents) agent.needsYou = (waiting.get(agent.id ?? '')?.size ?? 0) > 0
+}
+
+const wait = (agentId: string | undefined, callId: string, isWaiting: boolean) => {
+  const key = agentId ?? ''
+  const calls = waiting.get(key) ?? new Set<string>()
+  if (isWaiting) calls.add(callId)
+  else calls.delete(callId)
+  waiting.set(
+    key,
+    calls)
 }
 
 // Re-reads the entry: a /rename, and a spare session claimed for real use, show within 5 s.
@@ -200,9 +214,12 @@ const flush = async ($: EngineInterface) => {
   }
   await refreshAgents($)
   const text = JSON.stringify(room)
-  if (text === lastText) return
+  const now = await $.clock.now()
+  // Unchanged, the file is still rewritten every 5 s: the viewer may have removed it, and pid-less rooms need a fresh updatedAt.
+  if (text === lastText && now - lastWriteAt < 5_000) return
   lastText = text
-  const snapshot: RoomFile = { ...room, updatedAt: await $.clock.now() }
+  lastWriteAt = now
+  const snapshot: RoomFile = { ...room, updatedAt: now }
   await $.fs.write(
     file,
     JSON.stringify(snapshot))
@@ -215,55 +232,59 @@ const log = async ($: EngineInterface, agentId: string | null, action: Action) =
   room.log = [...room.log, entry].slice(-LOG_LIMIT)
 }
 
+// Starts this session's room: at session.start, and again under the new id after /clear or /resume.
+const init = async ($: EngineInterface) => {
+  configDir = (await $.env.get('CLAUDE_CONFIG_DIR')) ?? `${await $.env.get('HOME')}/.claude`
+  const sessionId = await $.session.id()
+  const entry = await sessionEntry(
+    $,
+    configDir,
+    sessionId)
+  file = `${configDir}/agent-room/${sessionId}.json`
+  lastText = ''
+  lastWriteAt = 0
+  wroteFile = false
+  waiting.clear()
+  hidden = entry?.spare === true || (entry?.entrypoint ?? '').startsWith('sdk')
+  seen.clear()
+  doneAt.clear()
+  room = {
+    version: 1,
+    sessionId,
+    name: entry?.name ?? sessionId.slice(0, 8),
+    cwd: await $.session.cwd(),
+    pid: entry?.pid ?? 0,
+    procStart: entry?.procStart ?? '',
+    agents: [mainDesk()],
+    usage: usageOf((await $.session.usage()).rateLimits),
+    log: [],
+  }
+  for (const timer of timers) timer.cancel()
+  timers = [
+    $.clock.every(
+      300,
+      () => void flush($).catch(() => undefined)),
+    $.clock.every(
+      5_000,
+      () => void refreshEntry($).catch(() => undefined)),
+    $.clock.every(
+      60_000,
+      () => void $.session
+        .usage()
+        .then(usage => {
+          if (room) room.usage = usageOf(usage.rateLimits)
+        })
+        .catch(() => undefined)),
+  ]
+}
+
 export const register: Register = on => {
   on(
     'session.start',
     async ($, e, next) => {
       const started = await next(e)
-      try {
-        configDir = (await $.env.get('CLAUDE_CONFIG_DIR')) ?? `${await $.env.get('HOME')}/.claude`
-        const sessionId = await $.session.id()
-        const entry = await sessionEntry(
-          $,
-          configDir,
-          sessionId)
-        file = `${configDir}/agent-room/${sessionId}.json`
-        lastText = ''
-        wroteFile = false
-        hidden = entry?.spare === true || (entry?.entrypoint ?? '').startsWith('sdk')
-        seen.clear()
-        doneAt.clear()
-        room = {
-          version: 1,
-          sessionId,
-          name: entry?.name ?? sessionId.slice(0, 8),
-          cwd: await $.session.cwd(),
-          pid: entry?.pid ?? 0,
-          procStart: entry?.procStart ?? '',
-          agents: [mainDesk()],
-          usage: usageOf((await $.session.usage()).rateLimits),
-          log: [],
-        }
-        for (const timer of timers) timer.cancel()
-        timers = [
-          $.clock.every(
-            300,
-            () => void flush($).catch(() => undefined)),
-          $.clock.every(
-            5_000,
-            () => void refreshEntry($).catch(() => undefined)),
-          $.clock.every(
-            60_000,
-            () => void $.session
-              .usage()
-              .then(usage => {
-                if (room) room.usage = usageOf(usage.rateLimits)
-              })
-              .catch(() => undefined)),
-        ]
-      } catch {
-        // Display only: a session without its room file is still a session.
-      }
+      // Off the engine's path to the first prompt; display only, so a failure leaves no room and nothing else.
+      void init($).catch(() => undefined)
       return started
     })
 
@@ -276,7 +297,10 @@ export const register: Register = on => {
           e.tool,
           e)
         agent.status = 'running'
-        if (e.tool === 'AskUserQuestion') agent.needsYou = true
+        if (e.tool === 'AskUserQuestion') wait(
+          e.agentId,
+          e.tool_use_id ?? 'question',
+          true)
         await log(
           $,
           e.agentId ?? null,
@@ -285,7 +309,10 @@ export const register: Register = on => {
       try {
         return await next(e)
       } finally {
-        if (agent) agent.needsYou = false
+        wait(
+          e.agentId,
+          e.tool_use_id ?? 'question',
+          false)
       }
     })
 
@@ -293,8 +320,11 @@ export const register: Register = on => {
     'tool.check',
     async ($, e, next) => {
       const verdict = await next(e)
-      const agent = desk(e.agentId)
-      if (agent && verdict.decision === 'ask') agent.needsYou = true
+      // Only a call of the session's own that the person is asked about: never a plugin's query.
+      if (verdict.decision === 'ask' && e.tool_use_id && e.approver !== 'host') wait(
+        e.agentId,
+        e.tool_use_id,
+        true)
       return verdict
     })
 
@@ -308,9 +338,10 @@ export const register: Register = on => {
   on(
     'turn.complete',
     async ($, e, next) => {
+      waiting.delete(e.agentId ?? '')
       if (e.agentId === undefined && room) Object.assign(
         room.agents[0],
-        { status: 'idle', needsYou: false, action: null })
+        { status: 'idle', action: null })
       return next(e)
     })
 
@@ -334,6 +365,9 @@ export const register: Register = on => {
         ])
         .catch(() => undefined)
       room = undefined
-      return next(e)
+      const ended = await next(e)
+      // /clear and /resume go on in this process under a new session id, with no session.start.
+      if (e.reason === 'clear' || e.reason === 'resume') await init($).catch(() => undefined)
+      return ended
     })
 }

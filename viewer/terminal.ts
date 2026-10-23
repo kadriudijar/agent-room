@@ -67,6 +67,12 @@ export const parseInput = (buf: Buffer): Input[] => {
       i += mouse[0].length
       continue
     }
+    // Any other CSI sequence (the terminal's replies, Delete, Home, Shift-Tab) is swallowed, not read as Esc.
+    const csi = /^\x1b\[[0-9;?]*[ -\/]*[@-~]/.exec(text.slice(i))
+    if (csi && !KEYS[csi[0]]) {
+      i += csi[0].length
+      continue
+    }
     const arrow = text.slice(
       i,
       i + 3)

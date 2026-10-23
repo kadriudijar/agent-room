@@ -80,3 +80,27 @@ test(
       tooSmall({ cols: 80, rows: 24 }),
       false)
   })
+
+test(
+  "the terminal's own replies and unmapped keys are not Esc",
+  () => {
+    assert.deepEqual(
+      parseInput(Buffer.from('\x1b[6;32;16t\x1b[3~\x1b[H\x1b[Z')),
+      [])
+  })
+
+test(
+  'an office too big for the tab shrinks evenly',
+  () => {
+    const many = Array.from(
+      { length: 8 },
+      (_, i) => ({ ...busy()[0], sessionId: `s${i}`, name: `s${i}` }))
+    const size = { cols: 80, rows: 24, cellW: 8, cellH: 16 }
+    const fit = fitScale(
+      many,
+      size)
+    const shown = (fit.cols * size.cellW) / (fit.rows * size.cellH)
+    const real = fit.office.width / fit.office.height
+
+    assert.ok(Math.abs(shown - real) / real < 0.1)
+  })

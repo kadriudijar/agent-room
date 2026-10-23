@@ -14,24 +14,36 @@ const collapse = (text: string) => text
 
 const aliveCache = new Map<string, { at: number; alive: boolean }>()
 
-// A pid is the session's only while the process holding it started when the session's did.
-export const processAlive: IsAlive = (pid, procStart) => {
+export type Ps = (pid: number) => string
+
+const runPs: Ps = pid => execFileSync(
+  'ps',
+  ['-o', 'lstart=', '-p', String(pid)],
+  { env: { ...process.env, TZ: 'UTC', LC_ALL: 'C' }, stdio: ['ignore', 'pipe', 'ignore'] })
+  .toString()
+
+// A pid is the session's only while the process holding it started when the session's did. Only
+// proof deletes: no such process, or `ps` answering a different start. A failing `ps` or an
+// unknown start keeps the room.
+export const processAlive = (pid: number, procStart: string, ps: Ps = runPs) => {
   const key = `${pid} ${procStart}`
   const cached = aliveCache.get(key)
   if (cached && Date.now() - cached.at < ALIVE_CACHE_MS) return cached.alive
-  let alive = false
+  let alive = true
   try {
     process.kill(
       pid,
       0)
-    const started = execFileSync(
-      'ps',
-      ['-o', 'lstart=', '-p', String(pid)],
-      { env: { ...process.env, TZ: 'UTC' }, stdio: ['ignore', 'pipe', 'ignore'] })
-      .toString()
-    alive = collapse(started) === collapse(procStart)
-  } catch {
-    alive = false
+  } catch (error) {
+    alive = (error as NodeJS.ErrnoException).code !== 'ESRCH'
+  }
+  if (alive && procStart) {
+    try {
+      const started = collapse(ps(pid))
+      if (started) alive = started === collapse(procStart)
+    } catch {
+      // ps could not answer: no proof the session ended.
+    }
   }
   aliveCache.set(
     key,

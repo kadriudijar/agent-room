@@ -14,9 +14,10 @@ const world = (on: Parameters<Parameters<typeof test>[1]>[1], agents: unknown[] 
   mock.env(
     on,
     { HOME: '/Users/dev' })
+  const ids = { current: 'session-b' }
   on(
     'session.id',
-    () => ({ value: 'session-b' }))
+    () => ({ value: ids.current }))
   on(
     'session.cwd',
     () => ({ value: '/Users/dev/app' }))
@@ -59,7 +60,7 @@ const world = (on: Parameters<Parameters<typeof test>[1]>[1], agents: unknown[] 
     'tool.call',
     () => ({ result: {} }))
   const last = () => JSON.parse(writes.at(-1)!.text) as RoomFile
-  return { clock, writes, runs, last }
+  return { clock, writes, runs, last, ids }
 }
 
 test(
@@ -67,6 +68,7 @@ test(
   async ($, on) => {
     const w = world(on)
     await $.session.start({ cwd: '/Users/dev/app', surface: 'terminal', isInteractive: true })
+    await w.clock.advance(0)
     await w.clock.advance(300)
 
     expect(w.writes.at(-1)?.path)
@@ -87,6 +89,7 @@ test(
   async ($, on) => {
     const w = world(on)
     await $.session.start({ cwd: '/Users/dev/app', surface: 'terminal', isInteractive: true })
+    await w.clock.advance(0)
     await $.tool.call({ tool: 'Read', file_path: '/a/b/api.ts' })
     await w.clock.advance(300)
 
@@ -104,6 +107,7 @@ test(
       on,
       [{ id: 'a1', type: 'Explore', description: 'find tests', status: 'running' }])
     await $.session.start({ cwd: '/Users/dev/app', surface: 'terminal', isInteractive: true })
+    await w.clock.advance(0)
     await $.tool.call({ tool: 'Bash', command: 'npm test\nmore', agentId: 'a1' })
     await w.clock.advance(300)
     const desk = w.last().agents.find(agent => agent.id === 'a1')
@@ -120,25 +124,43 @@ test(
   })
 
 test(
-  'needs you is set while a permission ask waits and cleared after',
+  'needs you is set while a permission ask waits and cleared when the turn ends',
+  async ($, on) => {
+    const w = world(on)
+    on(
+      'tool.check',
+      () => ({ decision: 'ask' }))
+    on(
+      'turn.complete',
+      () => ({ text: '' }))
+    await $.session.start({ cwd: '/Users/dev/app', surface: 'terminal', isInteractive: true })
+    await w.clock.advance(0)
+    await $.tool.check({ tool: 'Bash', input: { command: 'rm x' }, tool_use_id: 'u1', approver: 'person' })
+    await w.clock.advance(300)
+
+    expect(w.last().agents[0].needsYou)
+      .toBe(true)
+
+    await $.turn.complete({ turnId: 't1', answer: '' } as never)
+    await w.clock.advance(300)
+
+    expect(w.last().agents[0].needsYou)
+      .toBe(false)
+  })
+
+test(
+  "an asked call clears needs you once it settles",
   async ($, on) => {
     const w = world(on)
     on(
       'tool.check',
       () => ({ decision: 'ask' }))
     await $.session.start({ cwd: '/Users/dev/app', surface: 'terminal', isInteractive: true })
-    await $.tool.check({ tool: 'Bash', input: { command: 'rm x' } })
-    await w.clock.advance(300)
-
-    expect(w.last().agents[0].needsYou)
-
-      .toBe(true)
-
+    await w.clock.advance(0)
     await $.tool.call({ tool: 'Bash', command: 'rm x' })
     await w.clock.advance(300)
 
     expect(w.last().agents[0].needsYou)
-
       .toBe(false)
   })
 
@@ -161,6 +183,7 @@ test(
   async ($, on) => {
     const w = world(on)
     await $.session.start({ cwd: '/Users/dev/app', surface: 'terminal', isInteractive: true })
+    await w.clock.advance(0)
     for (let i = 1; i <= 60; i++) await $.tool.call({ tool: 'Bash', command: `echo ${i}` })
     await w.clock.advance(300)
 
@@ -179,6 +202,7 @@ test(
       'session.end',
       () => ({ sessionId: 'session-b' }))
     await $.session.start({ cwd: '/Users/dev/app', surface: 'terminal', isInteractive: true })
+    await w.clock.advance(0)
     await w.clock.advance(300)
     await $.session.end({ reason: 'exit' })
 
@@ -195,6 +219,7 @@ test(
       [],
       { entrypoint: 'sdk-cli' })
     await $.session.start({ cwd: '/Users/dev/app', surface: 'terminal', isInteractive: true })
+    await w.clock.advance(0)
     await w.clock.advance(6_000)
 
     expect(w.writes.filter(write => write.path === FILE).length)
@@ -210,10 +235,81 @@ test(
       [],
       entry)
     await $.session.start({ cwd: '/Users/dev/app', surface: 'terminal', isInteractive: true })
+    await w.clock.advance(0)
     await w.clock.advance(300)
     entry.name = 'agent-room'
     await w.clock.advance(5_000)
 
     expect(w.last().name)
       .toBe('agent-room')
+  })
+
+test(
+  '/clear keeps the room, under the new session id',
+  async ($, on) => {
+    const w = world(on)
+    on(
+      'session.end',
+      () => ({ sessionId: 'session-b' }))
+    await $.session.start({ cwd: '/Users/dev/app', surface: 'terminal', isInteractive: true })
+    await w.clock.advance(0)
+    await w.clock.advance(300)
+    w.ids.current = 'session-c'
+    await $.session.end({ reason: 'clear' })
+    await $.tool.call({ tool: 'Read', file_path: '/a/b/after.ts' })
+    await w.clock.advance(300)
+
+    expect(w.runs)
+      .toContainEqual(['rm', '-f', FILE])
+    expect(w.writes.at(-1)?.path)
+      .toBe('/Users/dev/.claude/agent-room/session-c.json')
+    expect(w.last().agents[0].action?.label)
+      .toBe('after.ts')
+  })
+
+test(
+  "a plugin's own permission query does not light needs you",
+  async ($, on) => {
+    const w = world(on)
+    on(
+      'tool.check',
+      () => ({ decision: 'ask' }))
+    await $.session.start({ cwd: '/Users/dev/app', surface: 'terminal', isInteractive: true })
+    await w.clock.advance(0)
+    await $.tool.check({ tool: 'Bash', input: { command: 'ls' } })
+    await w.clock.advance(300)
+
+    expect(w.last().agents[0].needsYou)
+      .toBe(false)
+  })
+
+test(
+  'a call finishing beside a waiting ask keeps needs you lit',
+  async ($, on) => {
+    const w = world(on)
+    on(
+      'tool.check',
+      () => ({ decision: 'ask' }))
+    await $.session.start({ cwd: '/Users/dev/app', surface: 'terminal', isInteractive: true })
+    await w.clock.advance(0)
+    await $.tool.check({ tool: 'Bash', input: { command: 'rm x' }, tool_use_id: 'u1', approver: 'person' })
+    await $.tool.call({ tool: 'Read', file_path: '/a.ts', tool_use_id: 'u2' })
+    await w.clock.advance(300)
+
+    expect(w.last().agents[0].needsYou)
+      .toBe(true)
+  })
+
+test(
+  "an idle session's file is rewritten every 5 s",
+  async ($, on) => {
+    const w = world(on)
+    await $.session.start({ cwd: '/Users/dev/app', surface: 'terminal', isInteractive: true })
+    await w.clock.advance(0)
+    await w.clock.advance(300)
+    const before = w.writes.length
+    await w.clock.advance(5_300)
+
+    expect(w.writes.length > before)
+      .toBe(true)
   })

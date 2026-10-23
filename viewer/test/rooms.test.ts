@@ -140,3 +140,31 @@ test(
         'stale.json')),
       true)
   })
+
+test(
+  'a ps failure or an unknown start time never kills a live session',
+  () => {
+    assert.equal(
+      processAlive(
+        process.pid,
+        'Fri Oct 23 18:38:20 2026',
+        () => {
+          throw new Error('fork failed')
+        }),
+      true)
+    assert.equal(
+      processAlive(
+        process.pid,
+        ''),
+      true)
+  })
+
+test(
+  'a pid with no process is dead',
+  () => {
+    assert.equal(
+      processAlive(
+        2_147_483_646,
+        ''),
+      false)
+  })
