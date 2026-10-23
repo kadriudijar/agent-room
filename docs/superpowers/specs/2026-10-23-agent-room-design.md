@@ -36,11 +36,11 @@ A fun, live way to watch every Claude Code session the developer has open, and e
 
 - **Art:** all sprites (floor tiles, walls, desks, monitors, chairs, plants, characters with sit/type/idle/needs-you frames) are defined in code as small pixel grids with a shared palette, scaled up by an integer factor. Nothing to license, and everything is safe to commit to this shared team repo.
 - **Terminal:** Ghostty on macOS via the kitty graphics protocol (PNG frames, replaced in place). The program reads the terminal's cell and pixel size to fit the image to the tab.
-- **Repo conventions:** the session-side part is a mod under `mods/`, like `usage-footer`, `prompt-gate` and `live-activity`. `setup.sh` symlinks it into `~/.claude/skills` so it runs in every session. Its tests run with `claude plugin test mods/<name>`. Project.md gets a feature entry. Per the repo rules: simplest implementation, no speculative abstraction, and `/vertical-chain-formatter` on changed code.
+- **Repo:** its own repository at `~/repos/agent-room` (not the shared `claude` config repo). The session side is a Claude Code mod in `mod/`, run in every session by an `install.sh` that symlinks it into `~/.claude/skills` (where Claude Code auto-loads a plugin folder) and `claude-room` into `~/.local/bin`. Mod tests run with `claude plugin test mod`. `Project.md` describes the project. Simplest implementation, no speculative abstraction, `/vertical-chain-formatter` on changed code.
 - **Mod API facts (verified in the plugin-authoring types):**
   - `$.agent.list()` gives every subagent and teammate (`id`, `description`, `type`, `status`, `parentId`, `name`).
   - `tool.call` events carry `agentId` (absent on the main loop).
-  - `$.session.usage()` and `session.measure` give context and rate limits (see `mods/usage-footer/hooks/register.ts`).
+  - `$.session.usage()` and `session.measure` give context and rate limits (see `~/repos/claude/mods/usage-footer/hooks/register.ts`).
   - The session name comes from `~/.claude/sessions/<pid>.json`, matched by session id, as the usage footer reads it.
   - `turn.start`, `turn.complete`, `agent.spawn` and `tool.check` are hookable.
 
@@ -48,7 +48,7 @@ A fun, live way to watch every Claude Code session the developer has open, and e
 
 Two parts, joined by files:
 
-1. **Session side: the `agent-room` mod** (`mods/agent-room/`). It runs in every session and keeps one status file for its session at `~/.claude/agent-room/<sessionId>.json`, written atomically (write a temp file, then rename). No two sessions ever write the same file. It holds:
+1. **Session side: the `agent-room` mod** (`mod/`). It runs in every session and keeps one status file for its session at `~/.claude/agent-room/<sessionId>.json`, written atomically (write a temp file, then rename). No two sessions ever write the same file. It holds:
    - the session's id, name, cwd and pid
    - the main agent's status and current action
    - each subagent's id, parent, description, type, status and current action
