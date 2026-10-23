@@ -39,9 +39,11 @@ if [[ "${1:-}" == "--uninstall" ]]; then
   exit 0
 fi
 
-node_major="$(node -p 'process.versions.node.split(".")[0]' 2>/dev/null || echo 0)"
-if (( node_major < 24 )); then
-  echo "claude-room needs Node 24.2 or newer (found ${node_major})." >&2
+# claude-room needs import.meta.main, which arrived in Node 24.2.
+node_version="$(node -p 'process.versions.node' 2>/dev/null || echo 0.0)"
+IFS=. read -r node_major node_minor _ <<< "$node_version"
+if (( node_major < 24 || (node_major == 24 && node_minor < 2) )); then
+  echo "claude-room needs Node 24.2 or newer (found ${node_version})." >&2
   exit 1
 fi
 
