@@ -67,6 +67,26 @@ The status file's shape is `RoomFile` in `mod/types/index.d.ts`, which both part
 
 **Key files:** `viewer/office.ts`, `viewer/sprites.ts`, `viewer/font.ts`, `viewer/test/font.test.ts`, `viewer/canvas.ts`, `viewer/png.ts`, `viewer/snapshot.ts`, `viewer/test/office.test.ts`, `viewer/test/fixtures/busy.json`
 
+### Generated art
+
+`art/` holds nine generated sheets (`boss`, `interns`, `desks`, `tiles`, `building`, `breakroom`, `icons`, `ui`, `badges`; prompts in `art/prompts.json`). At startup `loadArt` turns them into the office's sprites; if any sheet is missing or unreadable, the office keeps its drawn-in-code look.
+
+- **Reading:** `viewer/png.ts` reads 8-bit RGB and RGBA PNGs.
+- **Keying and finding sprites:** `viewer/sheet.ts` keys out the green background, keeping plant greens, and finds each sprite as a blob of opaque pixels rather than assuming a grid. Stacked pieces up to 48 px apart and side-by-side pieces up to 16 px apart merge, so a `?` keeps its dot and a pair of heads stays one icon. Sprites come back in reading order.
+- **Shrinking:** each sprite is shrunk to its slot by averaging, and a pixel stays opaque when half its area was, so edges stay hard.
+  - seated workers: 44×38, each a whole desk station
+  - standing and walking figures: 14×24
+  - floor tiles: 16×16, cut from the middle of each tile
+  - furniture: sized per piece
+  - icons: 7×7
+- **Panels:** the sign, chalkboard, clipboard and speech bubble are stretched as nine-slices (`drawNine`).
+- **Who wears what:**
+  - the boss (main agent): 4 hair styles, picked per agent, with the magenta shirt recolored to the session's colour (`recolor`, cached per frame image)
+  - interns (subagents): 4 looks
+- **Breaks:** a worker on break leaves an empty desk with its chair turned away.
+
+**Key files:** `viewer/art.ts`, `viewer/sheet.ts`, `viewer/png.ts`, `viewer/canvas.ts` (`drawImage`, `drawNine`), `art/`, `viewer/test/art.test.ts`, `viewer/test/sheet.test.ts`, `viewer/test/png.test.ts`
+
 ### Breaks
 
 - **Going on break:** an agent that has waited (`idle`) for 5 minutes gets up and walks to the kitchen or the lounge (breaks alternate between them), leaving an empty chair and a `(break)` name tag at its desk. The 5 minutes count from the status-change time `since`, which the mod stamps. It walks down to the corridor under its room, along it, then into the room over 2 s, and stands there.

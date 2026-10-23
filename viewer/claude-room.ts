@@ -4,6 +4,7 @@ import { mkdirSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 import type { RoomFile } from '../mod/types/index.d.ts'
+import { loadArt } from './art.ts'
 import { agentKey, createBreaks } from './breaks.ts'
 import { BIG_W, scaleCanvas } from './canvas.ts'
 import { BOARD_LINES, drawOffice, type Desk, type Hud } from './office.ts'
@@ -52,6 +53,10 @@ export const run = async (focus: Focus = focusSession) => {
   }
   const reader = createRoomReader(dir)
   const breaks = createBreaks()
+  // The generated art beside the viewer; without it the office keeps its drawn-in-code look.
+  const art = loadArt(new URL(
+    '../art',
+    import.meta.url).pathname)
   let size: Size = await querySize()
   let tick = 0
   let selected: Selection | null = null
@@ -121,7 +126,8 @@ export const run = async (focus: Focus = focusSession) => {
         breaks.update(
           fit.office,
           rooms,
-          Date.now())),
+          Date.now()),
+        art),
       fit.scale))
     if (!lastPng || !png.equals(lastPng)) {
       showImage(

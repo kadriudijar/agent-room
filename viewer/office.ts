@@ -1,5 +1,7 @@
 import type { DeskAgent, RoomFile } from '../mod/types/index.d.ts'
-import { BIG_H, BIG_W, type Canvas, createCanvas, drawSprite, drawText, fillRect, GLYPH_W } from './canvas.ts'
+import type { Art, Look } from './art.ts'
+import { BIG_H, BIG_W, type Canvas, createCanvas, drawImage, drawNine, drawSprite, drawText, fillRect, GLYPH_W } from './canvas.ts'
+import { recolor } from './sheet.ts'
 import { PALETTE, type Rgb, SPRITES, type Sprite } from './sprites.ts'
 import { agentKey, type Figure } from './breaks.ts'
 import type { Line } from './text.ts'
@@ -142,15 +144,56 @@ export const layoutOffice = (rooms: RoomFile[], width: number, height: number): 
 
 const hash = (text: string) => [...text].reduce((h, ch) => (h * 31 + ch.charCodeAt(0)) >>> 0, 7)
 
-const tile = (c: Canvas, s: Sprite, box: Box) => {
-  for (let y = box.y; y < box.y + box.h; y += s.h)
-    for (let x = box.x; x < box.x + box.w; x += s.w) drawSprite(
-      c,
-      s,
-      x,
-      y,
-      {},
-      box)
+// The generated art for the frame being drawn; undefined draws the sprites defined in code.
+let art: Art | undefined
+
+const tile = (c: Canvas, s: Sprite, box: Box, image?: Canvas) => {
+  const w = image?.width ?? s.w
+  const h = image?.height ?? s.h
+  for (let y = box.y; y < box.y + box.h; y += h)
+    for (let x = box.x; x < box.x + box.w; x += w)
+      if (image) drawImage(
+        c,
+        image,
+        x,
+        y,
+        false,
+        box)
+      else drawSprite(
+        c,
+        s,
+        x,
+        y,
+        {},
+        box)
+}
+
+const icon = (c: Canvas, name: keyof Art['icons'], x: number, y: number) => {
+  if (art) drawImage(
+    c,
+    art.icons[name],
+    x,
+    y)
+  else if (name !== 'coffee' && name !== 'alert') drawSprite(
+    c,
+    SPRITES.icons[name],
+    x,
+    y)
+}
+
+// The boss's magenta shirt in each session's colour, cut once per frame image and colour.
+const shirts = new WeakMap<Canvas, Map<number, Canvas>>()
+const inShirt = (image: Canvas, shirt: number) => {
+  const byShirt = shirts.get(image) ?? new Map<number, Canvas>()
+  shirts.set(
+    image,
+    byShirt)
+  if (!byShirt.has(shirt)) byShirt.set(
+    shirt,
+    recolor(
+      image,
+      PALETTE[`shirt${shirt}`]))
+  return byShirt.get(shirt)!
 }
 
 const outlineRect = (c: Canvas, { x, y, w, h }: Box, rgb: Rgb) => {
@@ -259,10 +302,23 @@ const framed = (c: Canvas, box: Box, fill: Rgb) => {
     PALETTE.bolt)
 }
 
-const drawSign = (c: Canvas, box: Box, header: string) => {
-  framed(
+const panel = (c: Canvas, box: Box, image: Canvas | undefined, fill: Rgb) => {
+  if (image) drawNine(
+    c,
+    image,
+    box,
+    6)
+  else framed(
     c,
     box,
+    fill)
+}
+
+const drawSign = (c: Canvas, box: Box, header: string) => {
+  panel(
+    c,
+    box,
+    art?.ui.sign,
     PALETTE.woodLight)
   label(
     c,
@@ -279,11 +335,12 @@ const drawSign = (c: Canvas, box: Box, header: string) => {
 const drawBoard = (c: Canvas, box: Box, hud: Hud) => {
   const ink = hud.isPaper ? PALETTE.outline : PALETTE.chalk
   const dim = hud.isPaper ? PALETTE.gray : PALETTE.chalkDim
-  framed(
+  panel(
     c,
     box,
+    hud.isPaper ? art?.ui.clipboard : art?.ui.chalkboard,
     hud.isPaper ? PALETTE.paper : PALETTE.chalkboard)
-  if (hud.isPaper) for (let y = box.y + 17; y < box.y + box.h - 4; y += LINE_H) fillRect(
+  if (hud.isPaper && !art) for (let y = box.y + 17; y < box.y + box.h - 4; y += LINE_H) fillRect(
     c,
     box.x + 4,
     y + LINE_H - 1,
@@ -312,9 +369,9 @@ const drawBoard = (c: Canvas, box: Box, hud: Hud) => {
     0,
     BOARD_LINES).forEach((line, i) => {
     const y = box.y + 18 + i * LINE_H
-    if (line.icon) drawSprite(
+    if (line.icon) icon(
       c,
-      SPRITES.icons[line.icon],
+      line.icon,
       box.x + 8,
       y)
     drawText(
@@ -348,16 +405,24 @@ const drawBuilding = (c: Canvas, box: Box) => {
   tile(
     c,
     SPRITES.floorConcrete,
-    { x: box.x + SIDE_WALL, y: box.y + OUTER_WALL, w: box.w - SIDE_WALL * 2, h: box.h - OUTER_WALL - SIDE_WALL })
+    { x: box.x + SIDE_WALL, y: box.y + OUTER_WALL, w: box.w - SIDE_WALL * 2, h: box.h - OUTER_WALL - SIDE_WALL },
+    art?.floors.corridor)
   tile(
     c,
     SPRITES.wallTop,
-    { x: box.x, y: box.y, w: box.w, h: OUTER_WALL })
-  for (let x = box.x + 20; x + SPRITES.window.w < box.x + box.w - 20; x += 48) drawSprite(
-    c,
-    SPRITES.window,
-    x,
-    box.y + 3)
+    { x: box.x, y: box.y, w: box.w, h: OUTER_WALL },
+    art?.wallTop)
+  for (let x = box.x + 20; x + SPRITES.window.w < box.x + box.w - 20; x += 48)
+    if (art) drawImage(
+      c,
+      art.window,
+      x,
+      box.y + 2)
+    else drawSprite(
+      c,
+      SPRITES.window,
+      x,
+      box.y + 3)
   outlineRect(
     c,
     box,
@@ -378,9 +443,95 @@ const rug = (c: Canvas, box: Box) => {
     PALETTE.rugLight)
 }
 
+// Furniture placed by its top-left corner, or by its centre with `isCentred`.
+const put = (c: Canvas, name: keyof Art['furniture'], x: number, y: number, isCentred = false) => {
+  const image = art!.furniture[name]
+  drawImage(
+    c,
+    image,
+    isCentred ? x - Math.floor(image.width / 2) : x,
+    y)
+}
+
+const drawArtCommons = (c: Canvas, box: RoomBox, inner: Box, cx: number) => {
+  if (box.kind === 'lounge') {
+    put(
+      c,
+      'rug',
+      cx,
+      inner.y + 10,
+      true)
+    put(
+      c,
+      'sofa',
+      cx,
+      inner.y + 2,
+      true)
+    put(
+      c,
+      'coffeeTable',
+      cx,
+      inner.y + 20,
+      true)
+    put(
+      c,
+      'bookshelf',
+      inner.x,
+      inner.y)
+    put(
+      c,
+      'tv',
+      inner.x + inner.w - 40,
+      inner.y)
+    put(
+      c,
+      'beanbag',
+      cx + 30,
+      inner.y + 24)
+    put(
+      c,
+      'armchair',
+      cx - 44,
+      inner.y + 14)
+    return
+  }
+  put(
+    c,
+    'counter',
+    inner.x,
+    inner.y)
+  put(
+    c,
+    'cooler',
+    inner.x + 38,
+    inner.y)
+  put(
+    c,
+    'fridge',
+    inner.x + inner.w - 30,
+    inner.y)
+  put(
+    c,
+    'dining',
+    cx,
+    inner.y + 22,
+    true)
+  put(
+    c,
+    'fruit',
+    cx,
+    inner.y + 24,
+    true)
+}
+
 const drawCommons = (c: Canvas, box: RoomBox) => {
   const inner = { x: box.x + PAD, y: box.y + WALL_H + PAD, w: box.w - PAD * 2, h: box.h - WALL_H - PAD * 2 }
   const cx = box.x + Math.floor(box.w / 2)
+  if (art) return drawArtCommons(
+    c,
+    box,
+    inner,
+    cx)
   if (box.kind === 'lounge') {
     rug(
       c,
@@ -422,14 +573,17 @@ const drawCommons = (c: Canvas, box: RoomBox) => {
 const ROOM_TITLES: Record<RoomKind, string> = { session: '', empty: '', lounge: 'LOUNGE', kitchen: 'KITCHEN' }
 
 const drawRoom = (c: Canvas, box: RoomBox, room: RoomFile | undefined) => {
+  const isTiled = box.kind === 'kitchen' || (box.kind === 'session' && hash(box.sessionId) % 2)
   tile(
     c,
-    box.kind === 'kitchen' || (box.kind === 'session' && hash(box.sessionId) % 2) ? SPRITES.floorTile : SPRITES.floorWood,
-    { ...box, y: box.y + WALL_H, h: box.h - WALL_H })
+    isTiled ? SPRITES.floorTile : SPRITES.floorWood,
+    { ...box, y: box.y + WALL_H, h: box.h - WALL_H },
+    art && (box.kind === 'kitchen' ? art.floors.kitchen : box.kind === 'lounge' ? art.floors.woodDark : isTiled ? art.floors.cream : art.floors.wood))
   tile(
     c,
     SPRITES.wallTop,
-    { ...box, h: WALL_H })
+    { ...box, h: WALL_H },
+    art?.wallTop)
   outlineRect(
     c,
     box,
@@ -442,7 +596,12 @@ const drawRoom = (c: Canvas, box: RoomBox, room: RoomFile | undefined) => {
     16,
     1,
     PALETTE.corridor)
-  drawSprite(
+  if (art) drawImage(
+    c,
+    art.plant,
+    box.x + box.w - 13,
+    box.y + box.h - 16)
+  else drawSprite(
     c,
     SPRITES.plant,
     box.x + box.w - 12,
@@ -460,7 +619,7 @@ const drawRoom = (c: Canvas, box: RoomBox, room: RoomFile | undefined) => {
       box)
     return
   }
-  if (box.w >= 150) drawSprite(
+  if (box.w >= 150 && !art) drawSprite(
     c,
     SPRITES.whiteboard,
     box.x + box.w - 30,
@@ -502,28 +661,36 @@ const drawBubble = (c: Canvas, desk: Desk, agent: DeskAgent) => {
     12 + text.length * GLYPH_W)
   const x = desk.x + Math.floor((DESK_W - w) / 2)
   const y = desk.y
-  fillRect(
+  if (art) drawNine(
     c,
-    x,
-    y,
-    w,
-    11,
-    PALETTE.outline)
-  fillRect(
+    art.ui.bubble,
+    { x, y, w, h: 13 },
+    3,
+    0.2)
+  else {
+    fillRect(
+      c,
+      x,
+      y,
+      w,
+      11,
+      PALETTE.outline)
+    fillRect(
+      c,
+      x + 1,
+      y + 1,
+      w - 2,
+      9,
+      PALETTE.white)
+    drawSprite(
+      c,
+      SPRITES.bubble.tail,
+      desk.x + DESK_W / 2 - 2,
+      y + 10)
+  }
+  icon(
     c,
-    x + 1,
-    y + 1,
-    w - 2,
-    9,
-    PALETTE.white)
-  drawSprite(
-    c,
-    SPRITES.bubble.tail,
-    desk.x + DESK_W / 2 - 2,
-    y + 10)
-  drawSprite(
-    c,
-    SPRITES.icons[agent.action.icon],
+    agent.action.icon,
     x + 2,
     y + 2)
   drawText(
@@ -570,7 +737,34 @@ const looks = (agent: DeskAgent, sessionId: string) => {
 }
 
 // An agent away from its desk: walking there or back, or standing in the kitchen.
+// The art's look for an agent: the boss's or an intern's, its hair picked by the agent.
+const artLook = (agent: DeskAgent, sessionId: string): { look: Look; shirt?: number } => {
+  const pick = hash(agent.id ?? sessionId)
+  return agent.id === null
+    ? { look: art!.boss[pick % art!.boss.length], shirt: pick % 6 }
+    : { look: art!.interns[pick % art!.interns.length] }
+}
+
+const dressed = (image: Canvas, shirt?: number) => (shirt === undefined ? image : inShirt(
+  image,
+  shirt))
+
 const drawFigure = (c: Canvas, agent: DeskAgent, sessionId: string, figure: Figure, tick: number) => {
+  if (art) {
+    const { look, shirt } = artLook(
+      agent,
+      sessionId)
+    const image = dressed(
+      figure.isWalking ? look.walk[Math.floor(tick / 2) % 2] : look.stand,
+      shirt)
+    drawImage(
+      c,
+      image,
+      figure.x + 5 - Math.floor(image.width / 2),
+      figure.y + 14 - image.height,
+      figure.isFacingLeft)
+    return
+  }
   const { sprites, recolor } = looks(
     agent,
     sessionId)
@@ -604,6 +798,47 @@ const drawDesk = (c: Canvas, desk: Desk, agent: DeskAgent, tick: number, isSelec
     c,
     desk,
     PALETTE.select)
+  if (art) {
+    if (isAway) {
+      drawImage(
+        c,
+        art.emptyDesk,
+        cx - Math.floor(art.emptyDesk.width / 2),
+        desk.y + 16)
+      drawImage(
+        c,
+        art.chairTurned,
+        cx - Math.floor(art.chairTurned.width / 2) + 6,
+        desk.y + 34)
+    } else {
+      const { look, shirt } = artLook(
+        agent,
+        desk.sessionId)
+      const frame = dressed(
+        isRunning ? look.seated[Math.floor(tick / 2) % 2] : agent.status === 'idle' ? look.seated[2] : look.seated[3],
+        shirt)
+      drawImage(
+        c,
+        frame,
+        cx - Math.floor(frame.width / 2),
+        desk.y + 50 - frame.height)
+    }
+    nameTag(
+      c,
+      isAway ? `${agent.name} (break)` : agent.name,
+      cx,
+      desk.y + 50)
+    if (!isAway) drawBubble(
+      c,
+      desk,
+      agent)
+    if (agent.needsYou && !isAway && Math.floor(tick / 5) % 2 === 0) icon(
+      c,
+      'alert',
+      cx + 14,
+      desk.y + 13)
+    return
+  }
   drawSprite(
     c,
     monitor,
@@ -649,7 +884,8 @@ const drawDesk = (c: Canvas, desk: Desk, agent: DeskAgent, tick: number, isSelec
     desk.y + 14)
 }
 
-export const drawOffice = (office: Office, rooms: RoomFile[], tick: number, selected: Desk | null, hud?: Hud, figures: Map<string, Figure> = new Map()): Canvas => {
+export const drawOffice = (office: Office, rooms: RoomFile[], tick: number, selected: Desk | null, hud?: Hud, figures: Map<string, Figure> = new Map(), withArt?: Art): Canvas => {
+  art = withArt
   const c = createCanvas(
     office.width,
     office.height,

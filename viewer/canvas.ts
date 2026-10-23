@@ -95,3 +95,37 @@ export const scaleCanvas = (c: Canvas, scale: number): Canvas => {
   }
   return out
 }
+
+// Draws an image with its transparency (a decoded art sprite); `flip` mirrors it left to right.
+export const drawImage = (c: Canvas, img: Canvas, x: number, y: number, flip = false, clip?: Clip) => {
+  for (let yy = 0; yy < img.height; yy++)
+    for (let xx = 0; xx < img.width; xx++) {
+      const i = (yy * img.width + (flip ? img.width - 1 - xx : xx)) * 4
+      if (clip && (x + xx < clip.x || y + yy < clip.y || x + xx >= clip.x + clip.w || y + yy >= clip.y + clip.h)) continue
+      if (img.data[i + 3]) put(
+        c,
+        x + xx,
+        y + yy,
+        [img.data[i], img.data[i + 1], img.data[i + 2]])
+    }
+}
+
+// Stretches a panel over a box as a nine-slice: its corners kept, its edges and middle stretched.
+// `edge` is how much of the source each corner takes, as a share of its smaller side.
+export const drawNine = (c: Canvas, img: Canvas, box: { x: number; y: number; w: number; h: number }, border: number, edge = 0.18) => {
+  const sx = Math.round(Math.min(img.width, img.height) * edge)
+  const sy = sx
+  const src = (d: number, size: number, srcSize: number, srcEdge: number) =>
+    d < border ? Math.floor(d * srcEdge / border)
+      : d >= size - border ? srcSize - srcEdge + Math.floor((d - (size - border)) * srcEdge / border)
+        : srcEdge + Math.floor((d - border) * (srcSize - 2 * srcEdge) / Math.max(1, size - 2 * border))
+  for (let y = 0; y < box.h; y++)
+    for (let x = 0; x < box.w; x++) {
+      const i = (src(y, box.h, img.height, sy) * img.width + src(x, box.w, img.width, sx)) * 4
+      if (img.data[i + 3]) put(
+        c,
+        box.x + x,
+        box.y + y,
+        [img.data[i], img.data[i + 1], img.data[i + 2]])
+    }
+}
