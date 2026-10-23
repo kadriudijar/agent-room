@@ -1,0 +1,1 @@
+{ "name": "agent-room", "version": "0.1.0", "description": "Writes this session's agents and their actions for claude-room", "types": "./types/index.d.ts" }
