@@ -76,7 +76,7 @@ The status file's shape is `RoomFile` in `mod/types/index.d.ts`, which both part
   - below the image is the activity log, newest first, or the selected desk's details: name, type, status, task or folder, and its last 5 actions
   - the last row is a key hint
 - **Keys:** click a desk, or use Tab or the arrows, to select it. Esc clears the selection, and `q` or ctrl+c quits.
-- **Go to session:** with a desk selected, Enter brings that session's Ghostty tab to the front through Ghostty 1.3's AppleScript (`viewer/focus.ts`). It lists every terminal's id, title and working directory, keeps the ones whose working directory is the session's `cwd`, and prefers the one whose title contains the session name. Then it runs `focus terminal id …`. When nothing matches, or osascript fails, the reason shows as the first details line.
+- **Go to session:** with a desk selected, Enter brings that session's own Ghostty tab to the front through Ghostty 1.3's AppleScript (`viewer/focus.ts`). The exact tab comes from a title handshake. The viewer finds the session's tty (`ps -o tty= -p <pid>`) and writes a one-off title to it. It asks Ghostty which terminal now shows that title, puts that terminal's old title back, and runs `focus terminal id …`. Without a tty, it falls back to the only tab in the session's folder, or the only one titled with the session name. It never guesses between several. Failures show as the first details line.
 - **Text safety:** every printed line drops C0/C1 control and bidi characters, so text from room files can't inject terminal escapes. The mod strips them from labels too.
 - **Resize:** a resize re-queries the cell size and redraws. A tab under 40×15 shows only `Make this tab bigger`.
 - **Speed:** a frame of a 3.5k-pixel-wide office takes about 110 ms, using 32-bit row copies and deflate level 1.
@@ -106,4 +106,4 @@ Sessions started after install write their rooms. Run `claude-room` in a tab of 
 - **One status file per session.** No two sessions write the same file, so nothing contends.
 - **Plain writes, not temp file plus rename.** The mod API has no rename. The viewer keeps the last good parse of a file it catches half-written.
 - **Agent Room lives in its own repo.** It is not part of the shared `claude` config repo.
-- **Go to session matches tabs by working directory.** Ghostty's AppleScript exposes no tty or pid, so the session's `cwd` picks the tab, with its name in the title as the tiebreak. Two untitled sessions in one folder may pick the wrong one of the two.
+- **Go to session finds the tab by a title handshake on the session's tty.** Ghostty's AppleScript exposes no tty or pid, and several sessions often share a folder with identical `✳ Claude Code` titles, so matching by folder alone picked the wrong tab. The handshake writes two short title escapes to the session's tty; one could interleave with the session's own output, at worst garbling one frame of its screen.
