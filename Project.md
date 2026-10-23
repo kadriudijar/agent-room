@@ -62,9 +62,10 @@ The status file's shape is `RoomFile` in `mod/types/index.d.ts`, which both part
   - idle agents lean back with the screen off
   - an agent that needs you gets a red `!` screen and a red `!` above it, blinking at 1 Hz
 - **Bubbles:** each bubble shows the action's icon and label, cut to fit.
+- **Fonts:** the status sign and the activity or details board use a 5×7 bitmap font with lowercase and two descender rows (`viewer/font.ts`, 6 px advance, 11 px lines). Bubbles, name tags and room names use the 3×5 uppercase font. A glyph a font lacks draws as `?`.
 - **Snapshot:** `node viewer/snapshot.ts <fixture> <out.png> [w h scale]` renders a fixture for checking the art.
 
-**Key files:** `viewer/office.ts`, `viewer/sprites.ts`, `viewer/canvas.ts`, `viewer/png.ts`, `viewer/snapshot.ts`, `viewer/test/office.test.ts`, `viewer/test/fixtures/busy.json`
+**Key files:** `viewer/office.ts`, `viewer/sprites.ts`, `viewer/font.ts`, `viewer/test/font.test.ts`, `viewer/canvas.ts`, `viewer/png.ts`, `viewer/snapshot.ts`, `viewer/test/office.test.ts`, `viewer/test/fixtures/busy.json`
 
 ### Breaks
 

@@ -1,5 +1,5 @@
 import type { DeskAgent, RoomFile } from '../mod/types/index.d.ts'
-import { type Canvas, createCanvas, drawSprite, drawText, fillRect, GLYPH_H, GLYPH_W } from './canvas.ts'
+import { BIG_H, BIG_W, type Canvas, createCanvas, drawSprite, drawText, fillRect, GLYPH_W } from './canvas.ts'
 import { PALETTE, type Rgb, SPRITES, type Sprite } from './sprites.ts'
 import { agentKey, type Figure } from './breaks.ts'
 import type { Line } from './text.ts'
@@ -21,10 +21,10 @@ const CORRIDOR = 16
 const OUTER_WALL = 16
 const SIDE_WALL = 6
 const MARGIN = 4
-const SIGN_H = 17
+const SIGN_H = 21
 export const BOARD_LINES = 6
-const LINE_H = GLYPH_H + 2
-const BOARD_H = 14 + BOARD_LINES * LINE_H
+const LINE_H = BIG_H + 1
+const BOARD_H = 20 + BOARD_LINES * LINE_H
 const COMMONS: RoomKind[] = ['lounge', 'kitchen']
 
 // Depth first from main: each agent's helpers sit right after it.
@@ -185,8 +185,8 @@ const outlineRect = (c: Canvas, { x, y, w, h }: Box, rgb: Rgb) => {
 }
 
 // Cuts text to what fits in `width` px of the pixel font, ending with `…`.
-const fit = (text: string, width: number) => {
-  const max = Math.floor(width / GLYPH_W)
+const fit = (text: string, width: number, glyphW = GLYPH_W) => {
+  const max = Math.floor(width / glyphW)
   return text.length <= max ? text : `${text.slice(
     0,
     Math.max(
@@ -195,20 +195,27 @@ const fit = (text: string, width: number) => {
 }
 
 // Text with a one-pixel shadow, so it reads on wood and on chalkboard alike.
-const label = (c: Canvas, text: string, x: number, y: number, rgb: Rgb, shadow: Rgb) => {
+const label = (c: Canvas, text: string, x: number, y: number, rgb: Rgb, shadow: Rgb, font: 'small' | 'big' = 'small') => {
   drawText(
     c,
     text,
     x + 1,
     y + 1,
-    shadow)
+    shadow,
+    font)
   return drawText(
     c,
     text,
     x,
     y,
-    rgb)
+    rgb,
+    font)
 }
+
+const bigFit = (text: string, width: number) => fit(
+  text,
+  width,
+  BIG_W)
 
 const framed = (c: Canvas, box: Box, fill: Rgb) => {
   fillRect(
@@ -259,13 +266,14 @@ const drawSign = (c: Canvas, box: Box, header: string) => {
     PALETTE.woodLight)
   label(
     c,
-    fit(
+    bigFit(
       header,
       box.w - 16),
     box.x + 8,
     box.y + 6,
     PALETTE.white,
-    PALETTE.woodDark)
+    PALETTE.woodDark,
+    'big')
 }
 
 const drawBoard = (c: Canvas, box: Box, hud: Hud) => {
@@ -275,48 +283,49 @@ const drawBoard = (c: Canvas, box: Box, hud: Hud) => {
     c,
     box,
     hud.isPaper ? PALETTE.paper : PALETTE.chalkboard)
-  if (hud.isPaper) for (let y = box.y + 14; y < box.y + box.h - 4; y += LINE_H) fillRect(
+  if (hud.isPaper) for (let y = box.y + 17; y < box.y + box.h - 4; y += LINE_H) fillRect(
     c,
     box.x + 4,
-    y + GLYPH_H,
+    y + LINE_H - 1,
     box.w - 8,
     1,
     PALETTE.paperLine)
-  label(
+  const titleW = label(
     c,
     hud.title,
     box.x + 8,
-    box.y + 5,
+    box.y + 6,
     ink,
-    hud.isPaper ? PALETTE.paperLine : PALETTE.chalkboardDark)
-  const hintW = hud.hint.length * GLYPH_W
+    hud.isPaper ? PALETTE.paperLine : PALETTE.chalkboardDark,
+    'big')
+  const hint = bigFit(
+    hud.hint,
+    box.w - 32 - titleW)
   drawText(
     c,
-    fit(
-      hud.hint,
-      box.w - 16 - (hud.title.length + 2) * GLYPH_W),
-    Math.max(
-      box.x + 8 + (hud.title.length + 2) * GLYPH_W,
-      box.x + box.w - 8 - hintW),
-    box.y + 5,
-    dim)
+    hint,
+    box.x + box.w - 8 - hint.length * BIG_W,
+    box.y + 6,
+    dim,
+    'big')
   hud.lines.slice(
     0,
     BOARD_LINES).forEach((line, i) => {
-    const y = box.y + 13 + i * LINE_H
+    const y = box.y + 18 + i * LINE_H
     if (line.icon) drawSprite(
       c,
       SPRITES.icons[line.icon],
       box.x + 8,
-      y - 1)
+      y)
     drawText(
       c,
-      fit(
+      bigFit(
         line.text,
-        box.w - 28),
-      box.x + 18,
+        box.w - 30),
+      box.x + 20,
       y,
-      ink)
+      ink,
+      'big')
   })
 }
 

@@ -142,7 +142,7 @@ test(
       busy(),
       size)
     const room = fit.office.rooms.find(r => r.kind === 'session')!
-    const corner = { x: room.x + 4, y: room.y + room.h - 4 }
+    const corner = { x: room.x + 12, y: room.y + room.h - 12 }
     const lounge = fit.office.rooms.find(r => r.kind === 'lounge')!
     const cell = (p: { x: number; y: number }) => [Math.floor(p.x * fit.scale / 10) + 1, Math.floor(p.y * fit.scale / 20) + 1] as const
 

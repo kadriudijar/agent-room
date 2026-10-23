@@ -5,7 +5,7 @@ import { homedir } from 'node:os'
 import { join } from 'node:path'
 import type { RoomFile } from '../mod/types/index.d.ts'
 import { agentKey, createBreaks } from './breaks.ts'
-import { GLYPH_W, scaleCanvas } from './canvas.ts'
+import { BIG_W, scaleCanvas } from './canvas.ts'
 import { BOARD_LINES, drawOffice, type Desk, type Hud } from './office.ts'
 import { focusSession } from './focus.ts'
 import { encodePng } from './png.ts'
@@ -27,7 +27,7 @@ import {
 import { detailLines, headerLine, logLines } from './text.ts'
 
 const FRAME_MS = 200
-const HINT = 'CLICK A ROOM: OPEN ITS TERMINAL · TAB: DETAILS · Q: QUIT'
+const HINT = 'Click a room to open its terminal · Tab: details · q: quit'
 
 type Selection = { sessionId: string; agentId: string | null }
 export type Focus = typeof focusSession
@@ -84,19 +84,19 @@ export const run = async (focus: Focus = focusSession) => {
     if (selected && !desk) selected = null
     const room = selected && rooms.find(r => r.sessionId === selected!.sessionId)
     const agent = room?.agents.find(a => a.id === selected!.agentId)
-    const cols = Math.floor(fit.office.width / GLYPH_W)
+    const cols = Math.floor(fit.office.width / BIG_W)
     const hud: Hud = room && agent
       ? {
         header: headerLine(
           rooms,
           Date.now(),
           cols),
-        title: 'DESK',
+        title: 'Desk',
         lines: [...(message ? [{ text: message }] : []), ...detailLines(
           room,
           agent,
           cols)],
-        hint: 'ENTER: GO TO SESSION · ESC: BACK',
+        hint: 'Enter: open terminal · Esc: back',
         isPaper: true,
       }
       : {
@@ -104,7 +104,7 @@ export const run = async (focus: Focus = focusSession) => {
           rooms,
           Date.now(),
           cols),
-        title: 'ACTIVITY',
+        title: 'Activity',
         lines: logLines(
           rooms,
           BOARD_LINES,

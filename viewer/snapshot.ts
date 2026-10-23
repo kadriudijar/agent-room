@@ -28,13 +28,13 @@ if (import.meta.main) {
           header: headerLine(
             rooms,
             Date.now(),
-            Math.floor(office.width / 4)),
-          title: 'ACTIVITY',
+            Math.floor(office.width / 6)),
+          title: 'Activity',
           lines: logLines(
             rooms,
             BOARD_LINES,
-            Math.floor(office.width / 4)),
-          hint: 'CLICK OR TAB: PICK A DESK · Q: QUIT',
+            Math.floor(office.width / 6)),
+          hint: 'Click a room to open its terminal · Tab: details · q: quit',
         }),
       Number(scale))))
 }

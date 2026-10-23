@@ -1,3 +1,4 @@
+import { BIG_FONT } from './font.ts'
 import { FONT, PALETTE, type Rgb, type Sprite } from './sprites.ts'
 
 export type Canvas = { width: number; height: number; data: Uint8Array }
@@ -50,20 +51,26 @@ export const drawSprite = (c: Canvas, s: Sprite, x: number, y: number, recolor: 
 
 export const GLYPH_W = 4
 export const GLYPH_H = 6
+// The big font's advance and line: 5×9 glyphs, one pixel apart.
+export const BIG_W = 6
+export const BIG_H = 10
 
-// Draws upper-cased text in the 3×5 pixel font; a glyph the font lacks draws as `?`.
-export const drawText = (c: Canvas, text: string, x: number, y: number, rgb: Rgb) => {
+// Draws text in a pixel font: `small` (3×5, upper case) or `big` (5×7 with lower case and
+// descenders). A glyph the font lacks draws as `?`. Returns the width drawn in px.
+export const drawText = (c: Canvas, text: string, x: number, y: number, rgb: Rgb, font: 'small' | 'big' = 'small') => {
+  const isBig = font === 'big'
+  const glyphs = isBig ? BIG_FONT : FONT
   let cx = x
-  for (const ch of text.toUpperCase()) {
-    const glyph = FONT[ch] ?? FONT['?']
-    for (let yy = 0; yy < 5; yy++)
-      for (let xx = 0; xx < 3; xx++)
+  for (const ch of isBig ? text : text.toUpperCase()) {
+    const glyph = glyphs[ch] ?? glyphs['?']
+    for (let yy = 0; yy < glyph.length; yy++)
+      for (let xx = 0; xx < glyph[yy].length; xx++)
         if (glyph[yy][xx] === '#') put(
           c,
           cx + xx,
           y + yy,
           rgb)
-    cx += GLYPH_W
+    cx += isBig ? BIG_W : GLYPH_W
   }
   return cx - x
 }
