@@ -27,7 +27,7 @@ const countdown = (resetsAt: string | undefined, now: number) => {
   const d = Math.floor(minutes / 1440)
   const h = Math.floor((minutes % 1440) / 60)
   const m = minutes % 60
-  return ` ↻${d ? `${d}d${h}h` : h ? `${h}h${m}m` : `${m}m`}`
+  return ` · resets in ${d ? `${d}d${h}h` : h ? `${h}h${m}m` : `${m}m`}`
 }
 
 export const headerLine = (rooms: RoomFile[], now: number, cols: number) => {

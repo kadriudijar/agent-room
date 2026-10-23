@@ -26,7 +26,7 @@ test(
         rooms,
         NOW,
         200),
-      'Agent Room · 3 rooms · 7 agents · 5 working · 4 helpers · 1 needs you · 5h 23.5% ↻2h14m · week 61% ↻3d4h')
+      'Agent Room · 3 rooms · 7 agents · 5 working · 4 helpers · 1 needs you · 5h 23.5% · resets in 2h14m · week 61% · resets in 3d4h')
   })
 
 test(
