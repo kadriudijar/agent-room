@@ -62,9 +62,28 @@ The status file's shape is `RoomFile` in `mod/types/index.d.ts`, which both part
 
 **Key files:** `viewer/office.ts`, `viewer/sprites.ts`, `viewer/canvas.ts`, `viewer/png.ts`, `viewer/snapshot.ts`, `viewer/test/office.test.ts`, `viewer/test/fixtures/busy.json`
 
+### claude-room (full screen in Ghostty)
+
+- **Startup:** `viewer/claude-room.ts` switches to the alternate screen, turns on mouse reporting, and probes for kitty graphics. If the probe fails it prints `claude-room needs a terminal with kitty graphics (Ghostty, kitty).` and exits 1.
+- **Each frame (every 200 ms):**
+  - it reads the rooms
+  - picks the largest whole-number scale (up to 6×) at which the office fills the space between the header row and the text rows
+  - draws and upscales the office with nearest-neighbour scaling, so pixels stay crisp
+  - sends it as a PNG with the kitty graphics protocol, as image id 1 replaced in place, only when the bytes changed
+- **Text rows:**
+  - row 1 is the header: rooms, agents, working, helpers, needs you, and 5-hour and weekly usage with reset countdowns, from the most recently updated room
+  - below the image is the activity log, newest first, or the selected desk's details: name, type, status, task or folder, and its last 5 actions
+  - the last row is a key hint
+- **Keys:** click a desk, or use Tab or the arrows, to select it. Esc clears the selection, and `q` or ctrl+c quits.
+- **Resize:** a resize re-queries the cell size and redraws. A tab under 40×15 shows only `Make this tab bigger`.
+- **Speed:** a frame of a 3.5k-pixel-wide office takes about 110 ms, using 32-bit row copies and deflate level 1.
+
+**Key files:** `viewer/claude-room.ts`, `viewer/terminal.ts`, `viewer/text.ts`, `viewer/test/terminal.test.ts`, `viewer/test/text.test.ts`
+
 ## Integrations
 
 - **Claude Code mod API:** `tool.call`, `tool.check`, `turn.start`/`turn.complete`, `session.start`/`session.measure`/`session.end`, `$.agent.list()` and `$.fs`. Tests run with `claude plugin test mod`.
+- **Ghostty (kitty graphics protocol):** PNG frames sent directly (`t=d`, `f=100`), plus SGR mouse reporting (modes 1000 and 1006) and the `CSI 16 t` cell-size query.
 - **Claude Code's sessions folder** (`~/.claude/sessions/<pid>.json`): an internal format, read for the session's pid, process start time and name.
 
 ## Key Decisions

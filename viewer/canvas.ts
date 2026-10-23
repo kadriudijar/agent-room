@@ -67,3 +67,24 @@ export const drawText = (c: Canvas, text: string, x: number, y: number, rgb: Rgb
   }
   return cx - x
 }
+
+// Nearest-neighbour upscale by a whole number, so pixels stay crisp.
+export const scaleCanvas = (c: Canvas, scale: number): Canvas => {
+  if (scale === 1) return c
+  const width = c.width * scale
+  const out = { width, height: c.height * scale, data: new Uint8Array(width * c.height * scale * 4) }
+  const src = new Uint32Array(c.data.buffer, c.data.byteOffset, c.width * c.height)
+  const dst = new Uint32Array(out.data.buffer)
+  for (let y = 0; y < c.height; y++) {
+    const line = (y * scale) * width
+    for (let x = 0; x < c.width; x++) dst.fill(
+      src[y * c.width + x],
+      line + x * scale,
+      line + (x + 1) * scale)
+    for (let r = 1; r < scale; r++) dst.copyWithin(
+      line + r * width,
+      line,
+      line + width)
+  }
+  return out
+}

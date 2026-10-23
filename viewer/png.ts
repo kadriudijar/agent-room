@@ -43,7 +43,9 @@ export const encodePng = (c: Canvas) => {
       header),
     chunk(
       'IDAT',
-      deflateSync(raw)),
+      deflateSync(
+        raw,
+        { level: 1 })),
     chunk(
       'IEND',
       Buffer.alloc(0)),
