@@ -23,7 +23,7 @@ import {
   showImage,
   tooSmall,
 } from './terminal.ts'
-import { detailLines, headerLine, logLines } from './text.ts'
+import { cut, detailLines, headerLine, logLines } from './text.ts'
 
 const FRAME_MS = 200
 const LOG_ROWS = 6
@@ -110,7 +110,9 @@ export const run = async (focus: Focus = focusSession) => {
     const room = selected && rooms.find(r => r.sessionId === selected!.sessionId)
     const agent = room?.agents.find(a => a.id === selected!.agentId)
     const lines = room && agent
-      ? [...(message ? [message] : []), ...detailLines(
+      ? [...(message ? [cut(
+        message,
+        size.cols)] : []), ...detailLines(
         room,
         agent,
         size.cols)]
