@@ -3,7 +3,8 @@
 import { readFileSync, writeFileSync } from 'node:fs'
 import type { RoomFile } from '../mod/types/index.d.ts'
 import { scaleCanvas } from './canvas.ts'
-import { drawOffice, layoutOffice } from './office.ts'
+import { BOARD_LINES, drawOffice, layoutOffice } from './office.ts'
+import { headerLine, logLines } from './text.ts'
 import { encodePng } from './png.ts'
 
 if (import.meta.main) {
@@ -22,6 +23,18 @@ if (import.meta.main) {
         office,
         rooms,
         0,
-        office.desks[1] ?? null),
+        office.desks[1] ?? null,
+        {
+          header: headerLine(
+            rooms,
+            Date.now(),
+            Math.floor(office.width / 4)),
+          title: 'ACTIVITY',
+          lines: logLines(
+            rooms,
+            BOARD_LINES,
+            Math.floor(office.width / 4)),
+          hint: 'CLICK OR TAB: PICK A DESK · Q: QUIT',
+        }),
       Number(scale))))
 }

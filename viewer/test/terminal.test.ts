@@ -39,18 +39,16 @@ test(
   () => {
     const small = fitScale(
       busy(),
-      { cols: 100, rows: 40, cellW: 10, cellH: 20 },
-      33)
+      { cols: 100, rows: 40, cellW: 10, cellH: 20 })
     const large = fitScale(
       busy(),
-      { cols: 200, rows: 60, cellW: 10, cellH: 20 },
-      53)
+      { cols: 200, rows: 60, cellW: 10, cellH: 20 })
 
     assert.notDeepEqual(
       [small.scale, small.office.width, small.office.height],
       [large.scale, large.office.width, large.office.height])
     assert.ok(small.office.width * small.scale <= 100 * 10)
-    assert.ok(large.office.height * large.scale <= 53 * 20)
+    assert.ok(large.office.height * large.scale <= 60 * 20)
   })
 
 test(
@@ -58,8 +56,7 @@ test(
   () => {
     const fit = fitScale(
       busy(),
-      { cols: 200, rows: 60, cellW: 10, cellH: 20 },
-      53)
+      { cols: 200, rows: 60, cellW: 10, cellH: 20 })
     const desk = fit.office.desks[0]
     const px = (desk.x + desk.w / 2) * fit.scale
     const py = (desk.y + desk.h / 2) * fit.scale
@@ -69,7 +66,7 @@ test(
         fit,
         { cols: 200, rows: 60, cellW: 10, cellH: 20 },
         Math.floor(px / 10) + 1,
-        Math.floor(py / 20) + 2),
+        Math.floor(py / 20) + 1),
       desk)
   })
 

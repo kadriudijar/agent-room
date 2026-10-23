@@ -11,10 +11,10 @@ const MAX_SCALE = 6
 
 export const tooSmall = ({ cols, rows }: Pick<Size, 'cols' | 'rows'>) => cols < 40 || rows < 15
 
-// The largest whole-number scale whose office fills `imageRows` without growing past it.
-export const fitScale = (rooms: RoomFile[], size: Size, imageRows: number): Fit => {
+// The largest whole-number scale whose office fills the tab without growing past it.
+export const fitScale = (rooms: RoomFile[], size: Size): Fit => {
   const pxW = size.cols * size.cellW
-  const pxH = imageRows * size.cellH
+  const pxH = size.rows * size.cellH
   for (let scale = MAX_SCALE; scale >= 1; scale--) {
     const office = layoutOffice(
       rooms,
@@ -28,17 +28,17 @@ export const fitScale = (rooms: RoomFile[], size: Size, imageRows: number): Fit 
           size.cols,
           Math.ceil(office.width * scale / size.cellW)),
         rows: Math.min(
-          imageRows,
+          size.rows,
           Math.ceil(office.height * scale / size.cellH)),
       }
   }
   throw new Error('unreachable')
 }
 
-// The desk under a click at 1-based terminal cell (col, row); the image starts on row 2.
+// The desk under a click at 1-based terminal cell (col, row); the image starts on row 1.
 export const deskAt = (fit: Fit, size: Size, col: number, row: number): Desk | undefined => {
   const x = ((col - 1) * size.cellW + size.cellW / 2) * (fit.office.width / (fit.cols * size.cellW))
-  const y = ((row - 2) * size.cellH + size.cellH / 2) * (fit.office.height / (fit.rows * size.cellH))
+  const y = ((row - 1) * size.cellH + size.cellH / 2) * (fit.office.height / (fit.rows * size.cellH))
   return fit.office.desks.find(d => x >= d.x && x < d.x + d.w && y >= d.y && y < d.y + d.h)
 }
 

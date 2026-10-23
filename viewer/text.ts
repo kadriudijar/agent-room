@@ -1,15 +1,5 @@
 import type { DeskAgent, Icon, RoomFile } from '../mod/types/index.d.ts'
 
-export const GLYPHS: Record<Icon, string> = {
-  read: '📖',
-  edit: '✏️',
-  bash: '$',
-  web: '🌐',
-  agent: '🤝',
-  ask: '❓',
-  other: '·',
-}
-
 const oneLine = (text: string) => text
   .replace(/\s+/g, ' ')
   .trim()
@@ -74,26 +64,35 @@ const clock = (at: number) => new Date(at)
 const agentName = (room: RoomFile, agentId: string | null) =>
   room.agents.find(a => a.id === agentId)?.name ?? (agentId === null ? 'main' : 'helper')
 
-export const logLines = (rooms: RoomFile[], count: number, cols: number) => rooms
+// One row of the board: an action's icon (drawn as a sprite) and its text.
+export type Line = { icon?: Icon; text: string }
+
+export const logLines = (rooms: RoomFile[], count: number, cols: number): Line[] => rooms
   .flatMap(room => room.log.map(entry => ({ room, entry })))
   .sort((a, b) => b.entry.at - a.entry.at)
   .slice(
     0,
     count)
-  .map(({ room, entry }) => cut(
-    `${clock(entry.at)}  ${agentName(
-      room,
-      entry.agentId)}  ${room.name}  ${GLYPHS[entry.icon]} ${oneLine(entry.label)}`,
-    cols))
+  .map(({ room, entry }) => ({
+    icon: entry.icon,
+    text: cut(
+      `${clock(entry.at)}  ${agentName(
+        room,
+        entry.agentId)}  ${room.name}  ${oneLine(entry.label)}`,
+      cols),
+  }))
 
-export const detailLines = (room: RoomFile, agent: DeskAgent, cols: number) => [
-  `${agent.name} · ${agent.type} · ${agent.status}${agent.needsYou ? ' · needs you' : ''} · ${room.name}`,
-  agent.description ? `Task: ${oneLine(agent.description)}` : `Session folder: ${room.cwd}`,
+export const detailLines = (room: RoomFile, agent: DeskAgent, cols: number): Line[] => [
+  { text: `${agent.name} · ${agent.type} · ${agent.status}${agent.needsYou ? ' · needs you' : ''} · ${room.name}` },
+  { text: agent.description ? `Task: ${oneLine(agent.description)}` : `Session folder: ${room.cwd}` },
   ...room.log
     .filter(entry => entry.agentId === agent.id)
     .slice(-5)
     .reverse()
-    .map(entry => `  ${clock(entry.at)}  ${GLYPHS[entry.icon]} ${oneLine(entry.label)}`),
-].map(line => cut(
-  line,
-  cols))
+    .map(entry => ({ icon: entry.icon, text: `${clock(entry.at)}  ${oneLine(entry.label)}` })),
+].map(line => ({
+  ...line,
+  text: cut(
+    line.text,
+    cols),
+}))

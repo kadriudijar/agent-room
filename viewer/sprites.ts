@@ -48,6 +48,18 @@ export const PALETTE: Record<string, Rgb> = {
   book3: [90, 160, 90],
   book4: [220, 180, 80],
   select: [255, 220, 60],
+  corridor: [196, 192, 184],
+  corridorLine: [176, 172, 164],
+  rug: [150, 70, 70],
+  rugLight: [180, 96, 90],
+  buildingWall: [92, 84, 104],
+  chalkboard: [46, 74, 58],
+  chalkboardDark: [36, 58, 46],
+  chalk: [232, 232, 216],
+  chalkDim: [170, 190, 172],
+  paper: [244, 238, 220],
+  paperLine: [214, 206, 186],
+  bolt: [190, 190, 200],
   // Six body colours, picked per agent.
   shirt0: [90, 130, 210],
   shirt0d: [60, 92, 170],
@@ -394,6 +406,104 @@ const tuft = sprite(
   ['g.g', '.g.'],
   { g: 'grassDark' })
 
+const floorConcrete = sprite(
+  [
+    'gggggggggggggggh',
+    'gggggggggggggggh',
+    'gggggggggggggggh',
+    'gggggggggggggggh',
+    'gggggggggggggggh',
+    'gggggggggggggggh',
+    'gggggggggggggggh',
+    'gggggggggggggggh',
+    'gggggggggggggggh',
+    'gggggggggggggggh',
+    'gggggggggggggggh',
+    'gggggggggggggggh',
+    'gggggggggggggggh',
+    'gggggggggggggggh',
+    'gggggggggggggggh',
+    'hhhhhhhhhhhhhhhh',
+  ],
+  { g: 'corridor', h: 'corridorLine' })
+
+const sofa = sprite(
+  [
+    '.oooooooooooooooooooooo.',
+    'oSSSSSSSSSSSSSSSSSSSSSSo',
+    'oSssssssssssssssssssssSo',
+    'oSssssssssssssssssssssSo',
+    'oSSSSSSSSSSSSSSSSSSSSSSo',
+    'oSsssssssSsssssssSsssSSo',
+    'oSsssssssSsssssssSssssSo',
+    'oSSSSSSSSSSSSSSSSSSSSSSo',
+    'oooooooooooooooooooooooo',
+    '.oo..................oo.',
+  ],
+  { o: 'outline', S: 'shirt0d', s: 'shirt0' })
+
+const coffeeTable = sprite(
+  [
+    'oooooooooooooo',
+    'olllllllllllwo',
+    'owwwwwwwwwwwwo',
+    'oddddddddddddo',
+    'oooooooooooooo',
+    '.od........do.',
+    '.oo........oo.',
+  ],
+  WOOD)
+
+const waterCooler = sprite(
+  [
+    '..oooo..',
+    '.oCCCCo.',
+    '.oCccCo.',
+    '.oCccCo.',
+    '.oCCCCo.',
+    'oooooooo',
+    'owwwwwwo',
+    'owrwwbwo',
+    'owwwwwwo',
+    'owwwwwwo',
+    'owwwwwwo',
+    'oooooooo',
+  ],
+  { o: 'outline', C: 'glass', c: 'glassLight', w: 'white', r: 'alert', b: 'book2' })
+
+const coffeeMachine = sprite(
+  [
+    'oooooooooooooooooooo',
+    'ommmmmmmmommmmmmmmmo',
+    'omMMMMMMmommmmmmmmmo',
+    'omMrrMMMmomkkmmmmmmo',
+    'omMMMMMMmommmmmmmmmo',
+    'ommmmmmmmomwwmmmmmmo',
+    'ommmmmmmmomwwmmmmmmo',
+    'oooooooooooooooooooo',
+    'ollllllllllllllllllo',
+    'owwwwwwwwwwwwwwwwwwo',
+    'owwwwwwwwwwwwwwwwwwo',
+    'oddddddddddddddddddo',
+    'oooooooooooooooooooo',
+  ],
+  { ...WOOD, m: 'metal', M: 'metalLight', r: 'alert', k: 'black', w: 'wood' })
+
+const whiteboard = sprite(
+  [
+    'oooooooooooooooooooooooo',
+    'owwwwwwwwwwwwwwwwwwwwwwo',
+    'owbbbbbwwwwwrrrrwwwwwwwo',
+    'owwwwwwwwwwwwwwwwwwwwwwo',
+    'owbbbwwbbbbwwwwwgggggwwo',
+    'owwwwwwwwwwwwwwwwwwwwwwo',
+    'owwggggwwwwwbbbbbbwwwwwo',
+    'owwwwwwwwwwwwwwwwwwwwwwo',
+    'oooooooooooooooooooooooo',
+    '.MMMMMMMMMMMMMMMMMMMMMM.',
+  ],
+  { o: 'outline', w: 'white', b: 'book2', r: 'book1', g: 'book3', M: 'metal' })
+
 const ICON = { o: 'outline', w: 'white', r: 'book1', b: 'book2', y: 'crown', g: 'code1', k: 'black', s: 'skin', c: 'glass', a: 'alert' }
 const icons = {
   read: sprite(
@@ -439,6 +549,12 @@ export const SPRITES = {
   crown,
   cap,
   plant,
+  floorConcrete,
+  sofa,
+  coffeeTable,
+  waterCooler,
+  coffeeMachine,
+  whiteboard,
   tree,
   tuft,
   bookshelf,
@@ -522,4 +638,7 @@ export const FONT: Record<string, string[]> = {
   '}': F('##.,.#.,.##,.#.,##.'),
   '~': F('...,.##,##.,...,...'),
   '…': F('...,...,...,...,#.#'),
+  '·': F('...,...,.#.,...,...'),
+  '–': F('...,...,###,...,...'),
+  '↻': F('.##,#.#,#..,#.#,.#.'),
 }

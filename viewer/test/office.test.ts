@@ -90,7 +90,7 @@ test(
         { x: 0, y: 0, w: office.width, h: office.height }))
       assert.ok(inside(
         d,
-        office.rooms.find(r => r.sessionId === d.sessionId)!))
+        office.rooms.find(r => r.kind === 'session' && r.sessionId === d.sessionId)!))
     }
     for (const a of office.desks)
       for (const b of office.desks)
@@ -113,11 +113,12 @@ test(
       null)
 
     assert.equal(
-      office.rooms.length,
+      office.rooms.filter(r => r.kind === 'empty').length,
       1)
     assert.deepEqual(
       [canvas.width, canvas.height],
-      [320, 200])
+      [office.width, office.height])
+    assert.ok(office.width >= 320 && office.height >= 200)
   })
 
 test(
@@ -142,4 +143,62 @@ test(
     assert.notDeepEqual(
       at(0),
       at(5))
+  })
+
+test(
+  'the sign sits above the rooms and the board below them',
+  () => {
+    const office = layoutOffice(
+      [room(
+        'a',
+        [agent(null)])],
+      640,
+      400)
+
+    for (const r of office.rooms) {
+      assert.ok(office.sign.y + office.sign.h <= r.y)
+      assert.ok(office.board.y >= r.y + r.h)
+    }
+    assert.ok(office.board.y + office.board.h <= office.height)
+  })
+
+test(
+  'the header and log are drawn on the sign and the board',
+  () => {
+    const rooms = [room(
+      'a',
+      [agent(null)])]
+    const office = layoutOffice(
+      rooms,
+      640,
+      400)
+    const draw = (header: string, line: string) => drawOffice(
+      office,
+      rooms,
+      0,
+      null,
+      { header, title: 'ACTIVITY', lines: [{ icon: 'bash', text: line }], hint: '' })
+    const inBox = (a: Uint8Array, b: Uint8Array, box: { x: number; y: number; w: number; h: number }) => {
+      for (let y = box.y; y < box.y + box.h; y++)
+        for (let x = box.x; x < box.x + box.w; x++)
+          if (a[(y * office.width + x) * 4] !== b[(y * office.width + x) * 4]) return true
+      return false
+    }
+
+    assert.ok(inBox(
+      draw(
+        'A',
+        'x').data,
+      draw(
+        'B',
+        'x').data,
+      office.sign))
+    assert.ok(inBox(
+      draw(
+        'A',
+        'x').data,
+      draw(
+        'A',
+        'y').data,
+      office.board))
   })

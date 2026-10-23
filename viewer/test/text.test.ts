@@ -68,12 +68,15 @@ test(
     assert.equal(
       lines.length,
       2)
+    assert.equal(
+      lines[0].icon,
+      'ask')
     assert.match(
-      lines[0],
-      /^\d\d:\d\d:\d\d  main  app-mobile  ❓ Asking you$/)
+      lines[0].text,
+      /^\d\d:\d\d:\d\d  main  app-mobile  Asking you$/)
     assert.match(
-      lines[1],
-      /Explore  profiles-36  \$ \$ npm test$/)
+      lines[1].text,
+      /Explore  profiles-36  \$ npm test$/)
   })
 
 test(
@@ -87,9 +90,9 @@ test(
       rooms[0].agents[1],
       80)
 
-    assert.ok(lines.some(line => line.includes('find tests')))
-    assert.ok(lines.some(line => line.includes('$ npm test')))
-    assert.ok(lines.every(line => [...line].length <= 80))
+    assert.ok(lines.some(line => line.text.includes('find tests')))
+    assert.ok(lines.some(line => line.icon === 'bash' && line.text.includes('$ npm test')))
+    assert.ok(lines.every(line => [...line.text].length <= 80))
   })
 
 test(
@@ -102,7 +105,7 @@ test(
       ...logLines(
         rooms,
         6,
-        200),
+        200).map(line => line.text),
       headerLine(
         rooms,
         NOW,
@@ -110,7 +113,7 @@ test(
       ...detailLines(
         rooms[0],
         rooms[0].agents[0],
-        200),
+        200).map(line => line.text),
     ]
 
     for (const line of lines) assert.doesNotMatch(

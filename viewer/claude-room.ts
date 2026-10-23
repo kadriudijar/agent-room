@@ -4,8 +4,8 @@ import { mkdirSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 import type { RoomFile } from '../mod/types/index.d.ts'
-import { scaleCanvas } from './canvas.ts'
-import { drawOffice, type Desk } from './office.ts'
+import { GLYPH_W, scaleCanvas } from './canvas.ts'
+import { BOARD_LINES, drawOffice, type Desk, type Hud } from './office.ts'
 import { focusSession } from './focus.ts'
 import { encodePng } from './png.ts'
 import { createRoomReader } from './rooms.ts'
@@ -23,12 +23,10 @@ import {
   showImage,
   tooSmall,
 } from './terminal.ts'
-import { cut, detailLines, headerLine, logLines } from './text.ts'
+import { detailLines, headerLine, logLines } from './text.ts'
 
 const FRAME_MS = 200
-const LOG_ROWS = 6
-const DETAIL_ROWS = 8
-const HINT = 'click or Tab: pick a desk · Enter: go to its session · Esc: back · q: quit'
+const HINT = 'CLICK OR TAB: PICK A DESK · Q: QUIT'
 
 type Selection = { sessionId: string; agentId: string | null }
 export type Focus = typeof focusSession
@@ -76,56 +74,58 @@ export const run = async (focus: Focus = focusSession) => {
         'Make this tab bigger')}`)
       return
     }
-    const textRows = selected ? DETAIL_ROWS : LOG_ROWS
-    const imageRows = size.rows - 1 - textRows
     fit = fitScale(
       rooms,
-      size,
-      imageRows)
+      size)
     desks = fit.office.desks
     const desk = selected && desks.find(d => d.sessionId === selected!.sessionId && d.agentId === selected!.agentId)
     if (selected && !desk) selected = null
+    const room = selected && rooms.find(r => r.sessionId === selected!.sessionId)
+    const agent = room?.agents.find(a => a.id === selected!.agentId)
+    const cols = Math.floor(fit.office.width / GLYPH_W)
+    const hud: Hud = room && agent
+      ? {
+        header: headerLine(
+          rooms,
+          Date.now(),
+          cols),
+        title: 'DESK',
+        lines: [...(message ? [{ text: message }] : []), ...detailLines(
+          room,
+          agent,
+          cols)],
+        hint: 'ENTER: GO TO SESSION · ESC: BACK',
+        isPaper: true,
+      }
+      : {
+        header: headerLine(
+          rooms,
+          Date.now(),
+          cols),
+        title: 'ACTIVITY',
+        lines: logLines(
+          rooms,
+          BOARD_LINES,
+          cols),
+        hint: HINT,
+      }
     const png = encodePng(scaleCanvas(
       drawOffice(
         fit.office,
         rooms,
         tick,
-        desk ?? null),
+        desk ?? null,
+        hud),
       fit.scale))
-    let out = row(
-      1,
-      headerLine(
-        rooms,
-        Date.now(),
-        size.cols))
     if (!lastPng || !png.equals(lastPng)) {
       showImage(
         png,
         1,
-        2,
+        1,
         fit.cols,
         fit.rows)
       lastPng = png
     }
-    const room = selected && rooms.find(r => r.sessionId === selected!.sessionId)
-    const agent = room?.agents.find(a => a.id === selected!.agentId)
-    const lines = room && agent
-      ? [...(message ? [cut(
-        message,
-        size.cols)] : []), ...detailLines(
-        room,
-        agent,
-        size.cols)]
-      : ['Activity', ...logLines(
-        rooms,
-        LOG_ROWS - 2,
-        size.cols)]
-    for (let i = 0; i < textRows; i++) out += row(
-      2 + imageRows + i,
-      i === textRows - 1 ? HINT.slice(
-        0,
-        size.cols) : lines[i] ?? '')
-    process.stdout.write(out)
   }
 
   const select = (desk: Desk | undefined) => {
@@ -143,7 +143,7 @@ export const run = async (focus: Focus = focusSession) => {
 
   const onInput = async (input: Input) => {
     if (input.kind === 'click') {
-      if (fit && input.row >= 2) select(deskAt(
+      if (fit) select(deskAt(
         fit,
         size,
         input.col,
