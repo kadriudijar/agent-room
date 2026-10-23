@@ -17,6 +17,7 @@ The status file's shape is `RoomFile` in `mod/types/index.d.ts`, which both part
 
 ### Session status mod
 
+- **Hidden sessions:** spare (pre-warmed) sessions and SDK-run ones, such as claude-mem's observers, write no room, because the developer didn't open them. The entry is re-read every 5 s, so a `/rename` or a spare being claimed shows within 5 s.
 - **On `session.start`:** the mod finds its session's entry in Claude Code's sessions folder (`~/.claude/sessions/<pid>.json`, matched by session id). It keeps that entry's `pid`, `procStart` and `name`. With no entry it uses `pid: 0` and the first 8 characters of the session id as the name.
 - **Every 300 ms:** it folds `$.agent.list()` into the desks. Main is always first. Running or pending subagents count as `running`, waiting or idle ones as `idle`, and the rest as `done`, which leaves the office 10 s after finishing. It writes the file only when its content changed.
 - **Each `tool.call`:** from main or from any subagent, it sets that desk's action and logs it. The log holds the newest 50 entries.
@@ -88,6 +89,17 @@ The status file's shape is `RoomFile` in `mod/types/index.d.ts`, which both part
 - **Ghostty (kitty graphics protocol):** PNG frames sent directly (`t=d`, `f=100`), plus SGR mouse reporting (modes 1000 and 1006) and the `CSI 16 t` cell-size query.
 - **Ghostty AppleScript (1.3+):** `terminals` (`id`, `name`, `working directory`) and `focus`, run through `osascript`. Inside a `tell application "Ghostty"` block, `tab` names Ghostty's tab class, so the field separator is `character id 9`, set outside the block.
 - **Claude Code's sessions folder** (`~/.claude/sessions/<pid>.json`): an internal format, read for the session's pid, process start time and name.
+
+## Setup
+
+```bash
+./install.sh             # links mod → ~/.claude/skills/agent-room, viewer/claude-room.ts → ~/.local/bin/claude-room
+./install.sh --uninstall # removes only links into this repo
+```
+
+Sessions started after install write their rooms. Run `claude-room` in a tab of the existing Ghostty (cmd+T), not a new Ghostty instance.
+
+**Key files:** `install.sh`, `README.md`
 
 ## Key Decisions
 

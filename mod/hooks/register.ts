@@ -9,6 +9,10 @@ type Room = Omit<RoomFile, 'updatedAt'>
 let room: Room | undefined
 let file = ''
 let lastText = ''
+let configDir = ''
+// A spare (pre-warmed) or SDK-run session is not one the developer opened: it writes no room.
+let hidden = false
+let wroteFile = false
 let timers: { cancel: () => void }[] = []
 // When each finished subagent was first seen done, so its desk clears 10 s later.
 const doneAt = new Map<string, number>()
@@ -117,6 +121,8 @@ const usageOf = (rateLimits: SessionRateLimit[]): Usage[] => rateLimits
   .filter(limit => limit.kind === 'five_hour' || limit.kind === 'seven_day')
   .map(limit => ({ kind: limit.kind as Usage['kind'], percent: limit.percentUsed, resetsAt: limit.resetsAt }))
 
+type SessionEntry = { pid?: number; sessionId?: string; procStart?: string; name?: string; spare?: boolean; entrypoint?: string }
+
 // This session's entry in Claude Code's sessions folder: its pid, process start and name.
 const sessionEntry = async ($: EngineInterface, configDir: string, sessionId: string) => {
   const dir = `${configDir}/sessions`
@@ -126,7 +132,7 @@ const sessionEntry = async ($: EngineInterface, configDir: string, sessionId: st
   for (const entry of entries.filter(entry => entry.name.endsWith('.json'))) {
     const session = await $.fs
       .read(`${dir}/${entry.name}`)
-      .then(text => JSON.parse(text) as { pid?: number; sessionId?: string; procStart?: string; name?: string })
+      .then(text => JSON.parse(text) as SessionEntry)
       .catch(() => undefined)
     if (session?.sessionId === sessionId) return session
   }
@@ -166,8 +172,32 @@ const refreshAgents = async ($: EngineInterface) => {
   room.agents = [room.agents[0], ...desks, ...pending]
 }
 
+// Re-reads the entry: a /rename, and a spare session claimed for real use, show within 5 s.
+const refreshEntry = async ($: EngineInterface) => {
+  if (!room) return
+  const entry = await sessionEntry(
+    $,
+    configDir,
+    room.sessionId)
+  if (!entry) return
+  hidden = entry.spare === true || (entry.entrypoint ?? '').startsWith('sdk')
+  room.name = entry.name ?? room.name
+  room.pid = entry.pid ?? room.pid
+  room.procStart = entry.procStart ?? room.procStart
+}
+
 const flush = async ($: EngineInterface) => {
   if (!room) return
+  if (hidden) {
+    if (wroteFile) await $.process.run([
+      'rm',
+      '-f',
+      file,
+    ])
+    wroteFile = false
+    lastText = ''
+    return
+  }
   await refreshAgents($)
   const text = JSON.stringify(room)
   if (text === lastText) return
@@ -176,6 +206,7 @@ const flush = async ($: EngineInterface) => {
   await $.fs.write(
     file,
     JSON.stringify(snapshot))
+  wroteFile = true
 }
 
 const log = async ($: EngineInterface, agentId: string | null, action: Action) => {
@@ -190,7 +221,7 @@ export const register: Register = on => {
     async ($, e, next) => {
       const started = await next(e)
       try {
-        const configDir = (await $.env.get('CLAUDE_CONFIG_DIR')) ?? `${await $.env.get('HOME')}/.claude`
+        configDir = (await $.env.get('CLAUDE_CONFIG_DIR')) ?? `${await $.env.get('HOME')}/.claude`
         const sessionId = await $.session.id()
         const entry = await sessionEntry(
           $,
@@ -198,6 +229,8 @@ export const register: Register = on => {
           sessionId)
         file = `${configDir}/agent-room/${sessionId}.json`
         lastText = ''
+        wroteFile = false
+        hidden = entry?.spare === true || (entry?.entrypoint ?? '').startsWith('sdk')
         seen.clear()
         doneAt.clear()
         room = {
@@ -216,6 +249,9 @@ export const register: Register = on => {
           $.clock.every(
             300,
             () => void flush($).catch(() => undefined)),
+          $.clock.every(
+            5_000,
+            () => void refreshEntry($).catch(() => undefined)),
           $.clock.every(
             60_000,
             () => void $.session
@@ -290,7 +326,7 @@ export const register: Register = on => {
     async ($, e, next) => {
       for (const timer of timers) timer.cancel()
       timers = []
-      if (room) await $.process
+      if (room && wroteFile) await $.process
         .run([
           'rm',
           '-f',

@@ -5,7 +5,7 @@ import { actionOf } from '../hooks/register'
 const FILE = '/Users/dev/.claude/agent-room/session-b.json'
 
 // Stands for the engine: Claude Code's sessions folder, the agents list and the file system.
-const world = (on: Parameters<Parameters<typeof test>[1]>[1], agents: unknown[] = []) => {
+const world = (on: Parameters<Parameters<typeof test>[1]>[1], agents: unknown[] = [], entry: Record<string, unknown> = {}) => {
   const clock = mock.clock(
     on,
     { now: 1_000_000 })
@@ -34,6 +34,7 @@ const world = (on: Parameters<Parameters<typeof test>[1]>[1], agents: unknown[] 
         sessionId: 'session-b',
         procStart: 'Fri Oct 23 18:38:20 2026',
         name: 'profiles-36',
+        ...entry,
       }),
     }))
   on(
@@ -184,4 +185,35 @@ test(
     expect(w.runs)
 
       .toContainEqual(['rm', '-f', FILE])
+  })
+
+test(
+  'spare and SDK sessions write no room',
+  async ($, on) => {
+    const w = world(
+      on,
+      [],
+      { entrypoint: 'sdk-cli' })
+    await $.session.start({ cwd: '/Users/dev/app', surface: 'terminal', isInteractive: true })
+    await w.clock.advance(6_000)
+
+    expect(w.writes.filter(write => write.path === FILE).length)
+      .toBe(0)
+  })
+
+test(
+  'a rename shows within 5 s',
+  async ($, on) => {
+    const entry: Record<string, unknown> = {}
+    const w = world(
+      on,
+      [],
+      entry)
+    await $.session.start({ cwd: '/Users/dev/app', surface: 'terminal', isInteractive: true })
+    await w.clock.advance(300)
+    entry.name = 'agent-room'
+    await w.clock.advance(5_000)
+
+    expect(w.last().name)
+      .toBe('agent-room')
   })
